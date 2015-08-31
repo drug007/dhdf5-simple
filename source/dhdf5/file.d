@@ -45,7 +45,7 @@ struct H5File
         H5Fclose(_file);
     }
 
-    const tid() const pure @safe
+    auto tid() const pure @safe
     {
     	return _file;
     }
