@@ -1,4 +1,4 @@
-module dataspec;
+module dhdf5.dataspec;
 
 import std.range;
 import std.traits;

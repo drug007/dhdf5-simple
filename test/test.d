@@ -3,9 +3,9 @@ import std.traits;
 
 import hdf5.hdf5;
 
-import dataspec;
-import dataset;
-import h5file;
+import dhdf5.dataspec;
+import dhdf5.dataset;
+import dhdf5.file;
 
 struct Bar
 {

@@ -1,10 +1,10 @@
-module dataset;
+module dhdf5.dataset;
 
 import hdf5.hdf5;
 
-import h5file;
-import dataset;
-import dataspec;
+import dhdf5.file;
+import dhdf5.dataset;
+import dhdf5.dataspec;
 
 struct Dataset(Data)
 {

@@ -1,4 +1,4 @@
-module h5file;
+module dhdf5.file;
 
 import hdf5.hdf5;
 
