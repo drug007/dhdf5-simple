@@ -5,6 +5,7 @@ import hdf5.hdf5;
 
 import dhdf5.dataspec;
 import dhdf5.dataset;
+import dhdf5.dataspace;
 import dhdf5.file;
 
 struct Bar

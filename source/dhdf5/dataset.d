@@ -3,7 +3,7 @@ module dhdf5.dataset;
 import hdf5.hdf5;
 
 import dhdf5.file;
-import dhdf5.dataset;
+import dhdf5.dataspace;
 import dhdf5.dataspec;
 
 struct Dataset(Data)
@@ -11,7 +11,7 @@ struct Dataset(Data)
     this(ref const(H5File) file, string name, ref const(DataSpace) space)
     {
         _data_spec = DataSpecification!Data.make();
-        _dataset = H5Dcreate2(file.tid, name.ptr, _data_spec.tid, space._space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        _dataset = H5Dcreate2(file.tid, name.ptr, _data_spec.tid, space.tid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         assert(_dataset >= 0);
     }
 
@@ -48,21 +48,4 @@ struct Dataset(Data)
 private:
     hid_t _dataset;
     DataSpecification!Data _data_spec;
-}
-
-struct DataSpace
-{
-    this(int rank, hsize_t[] dim)
-    {
-        _space = H5Screate_simple(rank, dim.ptr, null);
-        assert(_space >= 0);
-    }
-
-    ~this()
-    {
-        H5Sclose(_space);
-    }
-
-private:
-    hid_t _space;
 }
