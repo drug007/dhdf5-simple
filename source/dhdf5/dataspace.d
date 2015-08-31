@@ -2,9 +2,10 @@ module dhdf5.dataspace;
 
 import hdf5.hdf5;
 
-struct DataSpace
+struct DataSpace(Args...)
 {
-    this(int rank, hsize_t[] dim)
+	enum rank = Args.length;
+    this(hsize_t[rank] dim)
     {
         _space = H5Screate_simple(rank, dim.ptr, null);
         assert(_space >= 0);

@@ -30,7 +30,6 @@ struct Foo
     int[3] ia;
 }
 
-enum RANK   = 1;
 enum LENGTH = 1;
 
 void main()
@@ -51,7 +50,7 @@ void main()
 
     // Writing to file
     {
-        auto space = DataSpace(RANK, dim);
+        auto space = DataSpace!(Foo)(dim);
         auto file  = H5File(filename, H5File.Access.Trunc);
 
         auto dataset = Dataset!Foo(file, datasetName, space);

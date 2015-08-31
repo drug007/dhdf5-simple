@@ -8,7 +8,7 @@ import dhdf5.dataspec;
 
 struct Dataset(Data)
 {
-    this(ref const(H5File) file, string name, ref const(DataSpace) space)
+    this(DataSpace)(ref const(H5File) file, string name, ref const(DataSpace) space)
     {
         _data_spec = DataSpecification!Data.make();
         _dataset = H5Dcreate2(file.tid, name.ptr, _data_spec.tid, space.tid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
