@@ -8,13 +8,16 @@ import hdf5.hdf5;
 
 private
 {
-    alias AllowedTypes = TypeTuple!(float, int, double, char);
+    alias AllowedTypes = TypeTuple!(float, int, double, char, uint, long, ulong);
     enum string[] VectorHdf5Types =
     [
         "H5T_NATIVE_FLOAT",
         "H5T_NATIVE_INT",
         "H5T_NATIVE_DOUBLE",
         "H5T_NATIVE_B8",
+        "H5T_NATIVE_B32",
+        "H5T_NATIVE_LONG",
+        "H5T_NATIVE_B32",
     ];
 
     template typeToHdf5Type(T)
