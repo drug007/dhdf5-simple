@@ -54,6 +54,12 @@ private
     }
 }
 
+/// Used as UDA to disable a field of struct of class
+struct HDF5disable
+{
+
+}
+
 struct DataAttribute
 {
     hid_t type;
@@ -73,12 +79,32 @@ struct DataSpecification(Data)
 
         DataAttribute[] attributes;
 
+        template isDisabled(TP...)
+        {
+            auto isDisabledImpl()
+            {
+                bool disabled = false;
+                foreach(t; TP)
+                {
+                    static if(t == "HDF5disabled")
+                    {
+                        disabled = true;
+                        break;
+                    }
+                }
+
+                return disabled;
+            }
+
+            enum isDisabled = isDisabledImpl();
+        }
+
         // Создаем атрибуты
-        hid_t createStruct(D)(ref DataAttribute[] attributes) if(is(Data == struct))
+        hid_t createStruct(D)(ref DataAttribute[] attributes) if(is(D == struct))
         {
             auto tid = H5Tcreate (H5T_class_t.H5T_COMPOUND, D.sizeof);
 
-            foreach (member; __traits(allMembers, D))
+            foreach (member; FieldNameTuple!D)
             {
                 enum fullName = "D." ~ member;
                 enum hdf5Name = fullyQualifiedName!D ~ "." ~ member;
@@ -87,6 +113,14 @@ struct DataSpecification(Data)
                 
                 static if (staticIndexOf!(T, TT) != -1)
                 {
+                    mixin("alias A = " ~ fullName ~";");
+                    alias TP = TypeTuple!(__traits(getAttributes, A));
+                    enum disabled = isDisabled!TP; // check if field is disabled using UDA
+                    static if(disabled)
+                    {
+                        
+                    }
+                    else
                     static if(is(T == enum))
                     {
                         static assert(is(T : int), "hdf5 supports only enumeration based on integer type.");
@@ -124,10 +158,13 @@ struct DataSpecification(Data)
                         mixin("hid_t hdf5Type = " ~ typeToHdf5Type!T ~ ";");
                     }
 
-                    // Add the attribute
-                    mixin("string varName = \"" ~ hdf5Name ~ "\";");
-                    mixin("enum offset = D." ~ member ~ ".offsetof;");
-                    attributes ~= DataAttribute(hdf5Type, offset, varName);
+                    static if(!disabled)
+                    {
+                        // Add the attribute
+                        mixin("string varName = \"" ~ hdf5Name ~ "\";");
+                        mixin("enum offset = D." ~ member ~ ".offsetof;");
+                        attributes ~= DataAttribute(hdf5Type, offset, varName);
+                    }
                 }
             }
 

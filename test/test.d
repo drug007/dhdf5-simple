@@ -28,6 +28,11 @@ struct Foo
     Bar bar;
     float[] fa;
     int[3] ia;
+    union {
+        int one;
+        @("HDF5disabled")
+        int thesame;
+    }
 }
 
 enum LENGTH = 1;
@@ -45,7 +50,7 @@ void main()
 
     int[3] ia = [1, 2, 3];
 
-    Foo foo = Foo(17, 9., 0.197, TestEnum.d, 0.3, TestEnum.c, bar, [0.9, 0.8, 0.7], ia);
+    Foo foo = Foo(17, 9., 0.197, TestEnum.d, 0.3, TestEnum.c, bar, [0.9, 0.8, 0.7], ia, 71);
     Foo foor;
 
     // Writing to file
