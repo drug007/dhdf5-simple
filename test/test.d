@@ -10,9 +10,12 @@ import dhdf5.file;
 
 struct Bar
 {
+    enum SOME_ENUM = 4;
+
     int i;
     float f;
     double d;
+    char[SOME_ENUM] char_array;
 }
 
 enum TestEnum { a, b, c, d }
@@ -50,7 +53,7 @@ void main()
 
     H5open();
 
-    Bar bar = Bar(123, 12.3, 1.23);
+    Bar bar = Bar(123, 12.3, 1.23, "fdsa");
 
     int[3] ia = [1, 2, 3];
 

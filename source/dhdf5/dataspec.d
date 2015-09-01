@@ -76,8 +76,6 @@ struct DataSpecification(Data)
 
     static make()
     {
-        alias TT = FieldTypeTuple!Data;
-
         DataAttribute[] attributes;
 
         template isDisabled(TP...)
@@ -103,6 +101,8 @@ struct DataSpecification(Data)
         // Создаем атрибуты
         hid_t createStruct(D)(ref DataAttribute[] attributes) if(is(D == struct))
         {
+            alias TT = FieldTypeTuple!D;
+
             auto tid = H5Tcreate (H5T_class_t.H5T_COMPOUND, D.sizeof);
 
             foreach (member; FieldNameTuple!D)
@@ -117,6 +117,7 @@ struct DataSpecification(Data)
                     mixin("alias A = " ~ fullName ~";");
                     alias TP = TypeTuple!(__traits(getAttributes, A));
                     enum disabled = isDisabled!TP; // check if field is disabled using UDA
+
                     static if(disabled)
                     {
                         
