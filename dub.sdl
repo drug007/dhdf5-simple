@@ -3,7 +3,7 @@ description "A minimal D application."
 copyright "Copyright © 2015, drug"
 authors "drug"
 
-dependency "hdf5-d" version="~>0.0.1"
+dependency "hdf5-d" version="~master"
 libs "hdf5"
 
 configuration "main" {
