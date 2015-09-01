@@ -19,6 +19,8 @@ enum TestEnum { a, b, c, d }
 
 struct Foo
 {
+    enum SOME_ENUM = 8;
+
     int i;
     float f;
     double d;
@@ -28,6 +30,8 @@ struct Foo
     Bar bar;
     float[] fa;
     int[3] ia;
+    @("nonHDF5disabled")
+    char[SOME_ENUM] char_array;
     union {
         int one;
         @("HDF5disabled")
@@ -50,7 +54,8 @@ void main()
 
     int[3] ia = [1, 2, 3];
 
-    Foo foo = Foo(17, 9., 0.197, TestEnum.d, 0.3, TestEnum.c, bar, [0.9, 0.8, 0.7], ia, 71);
+    char[8] chr = "abcdefgh";
+    Foo foo = Foo(17, 9., 0.197, TestEnum.d, 0.3, TestEnum.c, bar, [0.9, 0.8, 0.7], ia, chr, 71);
     Foo foor;
 
     // Writing to file

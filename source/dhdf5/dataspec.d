@@ -8,12 +8,13 @@ import hdf5.hdf5;
 
 private
 {
-    alias AllowedTypes = TypeTuple!(float, int, double);
+    alias AllowedTypes = TypeTuple!(float, int, double, char);
     enum string[] VectorHdf5Types =
     [
         "H5T_NATIVE_FLOAT",
         "H5T_NATIVE_INT",
         "H5T_NATIVE_DOUBLE",
+        "H5T_NATIVE_B8",
     ];
 
     template typeToHdf5Type(T)
@@ -140,11 +141,11 @@ struct DataSpecification(Data)
                     {
                         import std.conv: text;
                         alias dim = countDimensions!T;
-                        mixin("hid_t hdf5Type = H5Tarray_create2 (" ~ typeToHdf5Type!(ElementType!T) ~ ", " ~ dim.length.text ~ ", dim.ptr);");
+                        mixin("hid_t hdf5Type = H5Tarray_create2 (" ~ typeToHdf5Type!(ForeachType!T) ~ ", " ~ dim.length.text ~ ", dim.ptr);");
                     }
                     else static if(isInputRange!T)
                     {
-                        mixin("hid_t hdf5Type = H5Tvlen_create (" ~ typeToHdf5Type!(ElementType!T) ~ ");");
+                        mixin("hid_t hdf5Type = H5Tvlen_create (" ~ typeToHdf5Type!(ForeachType!T) ~ ");");
                     }
                     else static if(is(T == struct))
                     {
