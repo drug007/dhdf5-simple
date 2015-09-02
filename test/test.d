@@ -82,6 +82,36 @@ void main()
         }
     }
 
+    // Array of scalars
+    {
+        alias DataType = int[];
+
+        DataType foo, foor;
+        string filename = "arrayofscalar.h5";
+    
+
+        foo = [100, 123, 200];
+
+        // Writing to file
+        {
+            auto space = DataSpace!(DataType)(dim);
+            auto file  = H5File(filename, H5File.Access.Trunc);
+
+            auto dataset = Dataset!(DataType)(file, datasetName, space);
+            dataset.write(foo);
+        }
+
+        // Reading from file
+        {
+            auto file = H5File(filename, H5File.Access.ReadOnly);
+            auto dataset = Dataset!(DataType)(file, datasetName);
+            
+            dataset.read(foor);
+            
+            assert(foor == foo);
+        }
+    }
+
     // Compound
     {
         alias DataType = Foo;

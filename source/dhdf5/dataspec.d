@@ -200,6 +200,25 @@ struct DataSpecification(Data)
         return DataSpecification!D(tid, []);
     }
 
+    private static make(D)() if(isStaticArray!D)
+    {
+        import std.conv: text;
+
+        alias ElemType = ForeachType!D;
+
+        alias dim = countDimensions!D;
+        mixin("hid_t tid = H5Tarray_create2 (" ~ typeToHdf5Type!(ElemType) ~ ", " ~ dim.length.text ~ ", dim.ptr);");
+        return DataSpecification!D(tid, []);
+    }
+
+    private static make(D)() if(isDynamicArray!D)
+    {
+        alias ElemType = ForeachType!D;
+
+        mixin("hid_t tid = H5Tvlen_create (" ~ typeToHdf5Type!(ElemType) ~ ");");
+        return DataSpecification!D(tid, []);
+    }
+
     static make()
     {
         return make!(Data);
