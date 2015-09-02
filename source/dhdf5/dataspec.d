@@ -147,7 +147,7 @@ struct DataSpecification(Data)
                         alias dim = countDimensions!T;
                         mixin("hid_t hdf5Type = H5Tarray_create2 (" ~ typeToHdf5Type!(ForeachType!T) ~ ", " ~ dim.length.text ~ ", dim.ptr);");
                     }
-                    else static if(isInputRange!T)
+                    else static if(isDynamicArray!T)
                     {
                         mixin("hid_t hdf5Type = H5Tvlen_create (" ~ typeToHdf5Type!(ForeachType!T) ~ ");");
                     }
