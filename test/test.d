@@ -48,35 +48,70 @@ void main()
 {
     hsize_t[1] dim = [ LENGTH ];   /* Dataspace dimensions */
 
-    string filename    = "autocompound.h5";
     string datasetName = "dataset";
 
     H5open();
 
-    Bar bar = Bar(123, 12.3, 1.23, "fdsa");
-
-    int[3] ia = [1, 2, 3];
-
-    char[8] chr = "abcdefgh";
-    Foo foo = Foo(17, 9., 0.197, TestEnum.d, 0.3, TestEnum.c, bar, [0.9, 0.8, 0.7], ia, chr, 71);
-    Foo foor;
-
-    // Writing to file
+    // Scalar
     {
-        auto space = DataSpace!(Foo)(dim);
-        auto file  = H5File(filename, H5File.Access.Trunc);
+        alias DataType = int;
 
-        auto dataset = Dataset!Foo(file, datasetName, space);
-        dataset.write(foo);
+        DataType foo, foor;
+        string filename = "autoscalar.h5";
+    
+
+        foo = 100;
+
+        // Writing to file
+        {
+            auto space = DataSpace!(DataType)(dim);
+            auto file  = H5File(filename, H5File.Access.Trunc);
+
+            auto dataset = Dataset!(DataType)(file, datasetName, space);
+            dataset.write(foo);
+        }
+
+        // Reading from file
+        {
+            auto file = H5File(filename, H5File.Access.ReadOnly);
+            auto dataset = Dataset!(DataType)(file, datasetName);
+            
+            dataset.read(foor);
+            
+            assert(foor == foo);
+        }
     }
 
-    // Reading from file
+    // Compound
     {
-        auto file = H5File(filename, H5File.Access.ReadOnly);
-        auto dataset = Dataset!Foo(file, datasetName);
+        alias DataType = Foo;
+        string filename = "autocompound.h5";
+
+        Bar bar = Bar(123, 12.3, 1.23, "fdsa");
+        int[3] ia = [1, 2, 3];
+        char[8] chr = "abcdefgh";
         
-        dataset.read(foor);
-        
-        assert(foor == foo);
+        DataType foo, foor;
+
+        foo = Foo(17, 9., 0.197, TestEnum.d, 0.3, TestEnum.c, bar, [0.9, 0.8, 0.7], ia, chr, 71);
+
+        // Writing to file
+        {
+            auto space = DataSpace!(DataType)(dim);
+            auto file  = H5File(filename, H5File.Access.Trunc);
+
+            auto dataset = Dataset!(DataType)(file, datasetName, space);
+            dataset.write(foo);
+        }
+
+        // Reading from file
+        {
+            auto file = H5File(filename, H5File.Access.ReadOnly);
+            auto dataset = Dataset!(DataType)(file, datasetName);
+            
+            dataset.read(foor);
+            
+            assert(foor == foo);
+        }
     }
 }

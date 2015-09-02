@@ -77,7 +77,7 @@ struct DataSpecification(Data)
 
     @disable this();
 
-    static make()
+    private static make(S)() if(is(S == struct))
     {
         DataAttribute[] attributes;
 
@@ -186,11 +186,23 @@ struct DataSpecification(Data)
             }
         }
 
-        auto tid = createStruct!Data(attributes);
+        auto tid = createStruct!S(attributes);
 
         insertAttributes(tid, attributes);
 
-        return DataSpecification!Data(tid, attributes);
+        return DataSpecification!S(tid, attributes);
+    }
+    
+    private static make(D)() if(isScalarType!D)
+    {
+        mixin("hid_t tid = " ~ typeToHdf5Type!D ~ ";");
+
+        return DataSpecification!D(tid, []);
+    }
+
+    static make()
+    {
+        return make!(Data);
     }
 
     this(const(hid_t) tid, DataAttribute[] attributes)
@@ -201,7 +213,15 @@ struct DataSpecification(Data)
 
     ~this()
     {
-        H5Tclose(_tid);
+        static if(is(Data == struct))
+        {
+            H5Tclose(_tid);
+        }
+        else
+        static if(isScalarType!Data)
+        {
+            // do nothing because built-in type is used(?)
+        }
     }
 
     auto tid() const
