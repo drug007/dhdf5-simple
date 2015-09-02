@@ -34,29 +34,29 @@ private
             enum typeToHdf5Type = VectorHdf5Types[index];
         }
     }
+}
 
-    auto countDimensions(T)() if(isStaticArray!T)
+auto countDimensions(T)() if(isStaticArray!T)
+{
+    T t;
+
+    size_t[] dim;
+
+    auto countDimensionsImpl(R)()
     {
-        T t;
-
-        size_t[] dim;
-
-        auto countDimensionsImpl(R)()
+        R r;
+        dim ~= R.length;
+        static if(isStaticArray!(typeof(r[0])))
         {
-            R r;
-            dim ~= R.length;
-            static if(isStaticArray!(typeof(r[0])))
-            {
-                return countDimensionsImpl!(typeof(r[0]));
-            }
-            else
-            {
-                return dim;
-            }
+            return countDimensionsImpl!(typeof(r[0]));
         }
-
-        return countDimensionsImpl!T;
+        else
+        {
+            return dim;
+        }
     }
+
+    return countDimensionsImpl!T;
 }
 
 /// Used as UDA to disable a field of struct of class
@@ -220,7 +220,15 @@ struct DataSpecification(Data)
 
     static make()
     {
-        return make!(Data);
+        static if(isArray!Data) // if "outer" type of data is array it's processed on Dataset level,
+                                // so skip it
+        {
+            return make!(ForeachType!Data);
+        }
+        else
+        {
+            return make!(Data);
+        }
     }
 
     this(const(hid_t) tid, DataAttribute[] attributes)

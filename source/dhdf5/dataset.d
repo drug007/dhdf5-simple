@@ -1,9 +1,11 @@
 module dhdf5.dataset;
 
+import std.conv: castFrom;
+import std.traits;
+
 import hdf5.hdf5;
 
 import dhdf5.file;
-import dhdf5.dataspace;
 import dhdf5.dataspec;
 
 struct Dataset(Data)
@@ -21,11 +23,20 @@ struct Dataset(Data)
 
     static create(ref const(H5File) file, string name)
     {
-        enum LENGTH = 1;
-        hsize_t[1] dim = [ LENGTH ];
-        auto space = DataSpace!(Data)(dim);
+        static if(isArray!Data)
+        {
+            static assert(!isDynamicArray!Data, "Dynamic array isn't implemented now");
+            auto dim = countDimensions!(Data);
+        }
+        else
+        {
+            enum LENGTH = 1;
+            hsize_t[1] dim = [ LENGTH ];
+        }
+        
+        auto space = H5Screate_simple(castFrom!(size_t).to!int(dim.length), dim.ptr, null);
         auto data_spec = DataSpecification!Data.make();
-        auto dataset = H5Dcreate2(file.tid, name.ptr, data_spec.tid, space.tid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        auto dataset = H5Dcreate2(file.tid, name.ptr, data_spec.tid, space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         assert(dataset >= 0);
         return Dataset!Data(dataset, data_spec);
     }
@@ -58,6 +69,8 @@ struct Dataset(Data)
 
     ~this()
     {
+        auto space = H5Dget_space(_dataset);
+        H5Sclose(space);
         H5Dclose(_dataset);
     }
 
