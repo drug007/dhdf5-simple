@@ -67,14 +67,14 @@ void main()
             auto space = DataSpace!(DataType)(dim);
             auto file  = H5File(filename, H5File.Access.Trunc);
 
-            auto dataset = Dataset!(DataType)(file, datasetName, space);
+            auto dataset = Dataset!(DataType).create(file, datasetName, space);
             dataset.write(foo);
         }
 
         // Reading from file
         {
             auto file = H5File(filename, H5File.Access.ReadOnly);
-            auto dataset = Dataset!(DataType)(file, datasetName);
+            auto dataset = Dataset!(DataType).open(file, datasetName);
             
             dataset.read(foor);
             
@@ -97,14 +97,14 @@ void main()
             auto space = DataSpace!(DataType)(dim);
             auto file  = H5File(filename, H5File.Access.Trunc);
 
-            auto dataset = Dataset!(DataType)(file, datasetName, space);
+            auto dataset = Dataset!(DataType).create(file, datasetName, space);
             dataset.write(foo);
         }
 
         // Reading from file
         {
             auto file = H5File(filename, H5File.Access.ReadOnly);
-            auto dataset = Dataset!(DataType)(file, datasetName);
+            auto dataset = Dataset!(DataType).open(file, datasetName);
             
             dataset.read(foor);
             
@@ -130,14 +130,14 @@ void main()
             auto space = DataSpace!(DataType)(dim);
             auto file  = H5File(filename, H5File.Access.Trunc);
 
-            auto dataset = Dataset!(DataType)(file, datasetName, space);
+            auto dataset = Dataset!(DataType).create(file, datasetName, space);
             dataset.write(foo);
         }
 
         // Reading from file
         {
             auto file = H5File(filename, H5File.Access.ReadOnly);
-            auto dataset = Dataset!(DataType)(file, datasetName);
+            auto dataset = Dataset!(DataType).open(file, datasetName);
             
             dataset.read(foor);
             

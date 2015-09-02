@@ -8,18 +8,30 @@ import dhdf5.dataspec;
 
 struct Dataset(Data)
 {
-    this(DataSpace)(ref const(H5File) file, string name, ref const(DataSpace) space)
+    private
     {
-        _data_spec = DataSpecification!Data.make();
-        _dataset = H5Dcreate2(file.tid, name.ptr, _data_spec.tid, space.tid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        assert(_dataset >= 0);
+        alias DataSpecType = typeof(DataSpecification!Data.make());
+
+        this(hid_t dataset, DataSpecType data_spec)
+        {
+            _dataset = dataset;
+            _data_spec = data_spec;
+        }
     }
 
-    this(ref const(H5File) file, string name)
+    static create(DataSpace)(ref const(H5File) file, string name, ref const(DataSpace) space)
     {
-        _data_spec = DataSpecification!Data.make();
-        _dataset = H5Dopen2(file.tid, name.ptr, H5P_DEFAULT);
-        assert(_dataset >= 0);
+        auto dataset = H5Dcreate2(file.tid, name.ptr, data_spec.tid, space.tid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        assert(dataset >= 0);
+        return Dataset!Data(dataset, data_spec);
+    }
+
+    static open(ref const(H5File) file, string name)
+    {
+        auto data_spec = DataSpecification!Data.make();
+        auto dataset = H5Dopen2(file.tid, name.ptr, H5P_DEFAULT);
+        assert(dataset >= 0);
+        return Dataset!Data(dataset, data_spec);
     }
 
     /*
@@ -47,5 +59,5 @@ struct Dataset(Data)
 
 private:
     hid_t _dataset;
-    DataSpecification!Data _data_spec;
+    DataSpecType _data_spec;
 }

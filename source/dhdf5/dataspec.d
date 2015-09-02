@@ -3,6 +3,7 @@ module dhdf5.dataspec;
 import std.range;
 import std.traits;
 import std.typetuple;
+import std.typecons;
 
 import hdf5.hdf5;
 
@@ -74,8 +75,6 @@ struct DataAttribute
 struct DataSpecification(Data)
 {    
     alias DataType = Data;
-
-    @disable this();
 
     private static make(S)() if(is(S == struct))
     {
@@ -190,14 +189,14 @@ struct DataSpecification(Data)
 
         insertAttributes(tid, attributes);
 
-        return DataSpecification!S(tid, attributes);
+        return RefCounted!(DataSpecification!S)(tid, attributes);
     }
     
     private static make(D)() if(isScalarType!D)
     {
         mixin("hid_t tid = " ~ typeToHdf5Type!D ~ ";");
 
-        return DataSpecification!D(tid, []);
+        return RefCounted!(DataSpecification!D)(tid, (DataAttribute[]).init);
     }
 
     private static make(D)() if(isStaticArray!D)
@@ -208,7 +207,7 @@ struct DataSpecification(Data)
 
         alias dim = countDimensions!D;
         mixin("hid_t tid = H5Tarray_create2 (" ~ typeToHdf5Type!(ElemType) ~ ", " ~ dim.length.text ~ ", dim.ptr);");
-        return DataSpecification!D(tid, []);
+        return RefCounted!(DataSpecification!D)(tid, (DataAttribute[]).init);
     }
 
     private static make(D)() if(isDynamicArray!D)
@@ -216,7 +215,7 @@ struct DataSpecification(Data)
         alias ElemType = ForeachType!D;
 
         mixin("hid_t tid = H5Tvlen_create (" ~ typeToHdf5Type!(ElemType) ~ ");");
-        return DataSpecification!D(tid, []);
+        return RefCounted!(DataSpecification!D)(tid, (DataAttribute[]).init);
     }
 
     static make()
@@ -251,5 +250,4 @@ struct DataSpecification(Data)
 private:
     DataAttribute[] _attributes;
     immutable hid_t _tid;
-    const(Data*) _data_ptr;
 }
