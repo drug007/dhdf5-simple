@@ -19,8 +19,12 @@ struct Dataset(Data)
         }
     }
 
-    static create(DataSpace)(ref const(H5File) file, string name, ref const(DataSpace) space)
+    static create(ref const(H5File) file, string name)
     {
+        enum LENGTH = 1;
+        hsize_t[1] dim = [ LENGTH ];
+        auto space = DataSpace!(Data)(dim);
+        auto data_spec = DataSpecification!Data.make();
         auto dataset = H5Dcreate2(file.tid, name.ptr, data_spec.tid, space.tid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         assert(dataset >= 0);
         return Dataset!Data(dataset, data_spec);

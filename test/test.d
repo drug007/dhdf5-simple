@@ -42,12 +42,8 @@ struct Foo
     }
 }
 
-enum LENGTH = 1;
-
 void main()
 {
-    hsize_t[1] dim = [ LENGTH ];   /* Dataspace dimensions */
-
     string datasetName = "dataset";
 
     H5open();
@@ -64,10 +60,8 @@ void main()
 
         // Writing to file
         {
-            auto space = DataSpace!(DataType)(dim);
             auto file  = H5File(filename, H5File.Access.Trunc);
-
-            auto dataset = Dataset!(DataType).create(file, datasetName, space);
+            auto dataset = Dataset!(DataType).create(file, datasetName);
             dataset.write(foo);
         }
 
@@ -94,10 +88,8 @@ void main()
 
         // Writing to file
         {
-            auto space = DataSpace!(DataType)(dim);
             auto file  = H5File(filename, H5File.Access.Trunc);
-
-            auto dataset = Dataset!(DataType).create(file, datasetName, space);
+            auto dataset = Dataset!(DataType).create(file, datasetName);
             dataset.write(foo);
         }
 
@@ -127,10 +119,8 @@ void main()
 
         // Writing to file
         {
-            auto space = DataSpace!(DataType)(dim);
             auto file  = H5File(filename, H5File.Access.Trunc);
-
-            auto dataset = Dataset!(DataType).create(file, datasetName, space);
+            auto dataset = Dataset!(DataType).create(file, datasetName);
             dataset.write(foo);
         }
 
