@@ -1,6 +1,7 @@
 module dhdf5.dataset;
 
 import std.conv: castFrom;
+import std.string: toStringz;
 import std.traits;
 
 import hdf5.hdf5;
@@ -104,7 +105,7 @@ struct Dataset(Data)
         
         auto space = H5Screate_simple(castFrom!(size_t).to!int(curr_dim.length), curr_dim.ptr, max_dim.ptr);
         auto data_spec = DataSpecification!Data.make();
-        auto dataset = H5Dcreate2(file.tid, name.ptr, data_spec.tid, space, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
+        auto dataset = H5Dcreate2(file.tid, name.toStringz, data_spec.tid, space, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
         assert(dataset >= 0);
         return Dataset!Data(dataset, data_spec);
     }
@@ -112,7 +113,7 @@ struct Dataset(Data)
     static open(ref const(H5File) file, string name)
     {
         auto data_spec = DataSpecification!Data.make();
-        auto dataset = H5Dopen2(file.tid, name.ptr, H5P_DEFAULT);
+        auto dataset = H5Dopen2(file.tid, name.toStringz, H5P_DEFAULT);
         assert(dataset >= 0);
         return Dataset!Data(dataset, data_spec);
     }

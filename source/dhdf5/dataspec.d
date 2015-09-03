@@ -4,6 +4,7 @@ import std.range;
 import std.traits;
 import std.typetuple;
 import std.typecons;
+import std.string: toStringz;
 
 import hdf5.hdf5;
 
@@ -222,7 +223,7 @@ struct DataSpecification(Data)
         {
             foreach(attr; da)
             {
-                auto status = H5Tinsert(hdf5Type, attr.varName.ptr, attr.offset, attr.type);
+                auto status = H5Tinsert(hdf5Type, attr.varName.toStringz, attr.offset, attr.type);
                 assert(status >= 0);
             }
         }

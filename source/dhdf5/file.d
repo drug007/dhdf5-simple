@@ -1,5 +1,7 @@
 module dhdf5.file;
 
+import std.string: toStringz;
+
 import hdf5.hdf5;
 
 struct H5File
@@ -23,14 +25,14 @@ struct H5File
         if(((f == Access.Trunc) && (f != Access.Exclude)) ||
            ((f != Access.Trunc) && (f == Access.Exclude)))
         {
-            _file = H5Fcreate(filename.ptr, flags, fcpl_id, fapl_id);
+            _file = H5Fcreate(filename.toStringz, flags, fcpl_id, fapl_id);
             assert(_file >= 0);
         }
         else
         if(((f == Access.ReadOnly) && (f != Access.ReadWrite)) ||
            ((f != Access.ReadOnly) && (f == Access.ReadWrite)))
         {
-            _file = H5Fopen(filename.ptr, flags, fapl_id);
+            _file = H5Fopen(filename.toStringz, flags, fapl_id);
             assert(_file >= 0);
         }
         else
