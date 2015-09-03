@@ -59,6 +59,48 @@ auto countDimensions(T)() if(isStaticArray!T)
     return countDimensionsImpl!T;
 }
 
+auto countDimensions(T)() if(isDynamicArray!T)
+{
+    size_t[] dim;
+
+    auto countDimensionsImpl(R)()
+    {
+        R r;
+
+        dim ~= H5F_UNLIMITED;
+        static if(isDynamicArray!(typeof(r[0])))
+        {
+            return countDimensionsImpl!(typeof(r[0]))(r[0]);
+        }
+        else
+        {
+            return dim;
+        }
+    }
+
+    return countDimensionsImpl!T;
+}
+
+auto countDimensions(T)(T t) if(isDynamicArray!T)
+{
+    size_t[] dim;
+
+    auto countDimensionsImpl(R)(R r)
+    {
+        dim ~= r.length;
+        static if(isDynamicArray!(typeof(r[0])))
+        {
+            return countDimensionsImpl!(typeof(r[0]))(r[0]);
+        }
+        else
+        {
+            return dim;
+        }
+    }
+
+    return countDimensionsImpl(t);
+}
+
 /// Used as UDA to disable a field of struct of class
 struct HDF5disable
 {

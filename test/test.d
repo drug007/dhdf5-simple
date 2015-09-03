@@ -103,6 +103,39 @@ void main()
         }
     }
 
+    // Dynamic array of scalars
+    {
+        string filename = "dynamicarrayofscalar.h5";
+    
+        auto foo = [
+            [100, 123, 200],
+            [1, 12, 20],
+            [30, 135, 72, 14, 634],
+        ];
+
+        foreach(el; foo)
+        {
+            alias DataType = typeof(el);
+
+            // Writing to file
+            {
+                auto file  = H5File(filename, H5File.Access.Trunc);
+                auto dataset = Dataset!(DataType).create(file, datasetName);
+                dataset.write(el);
+            }
+
+            // Reading from file
+            {
+                auto file = H5File(filename, H5File.Access.ReadOnly);
+                auto dataset = Dataset!(DataType).open(file, datasetName);
+    
+                DataType foor;            
+                dataset.read(foor);
+                assert(foor == el);
+            }
+        }
+    }
+
     // Compound
     {
         alias DataType = Foo;
@@ -165,6 +198,57 @@ void main()
             dataset.read(foor);
             
             assert(foor == foo);
+        }
+    }
+
+
+
+    // Dynamic array of compounds
+    {
+        string filename = "dynamicarrayofcompound.h5";
+
+        Bar bar = Bar(123, 12.3, 1.23, "fdsa");
+        int[3] ia = [1, 2, 3];
+        char[8] chr = "abcdefgh";
+
+        auto foo = [
+            [
+                Foo(17, 9., 0.197, TestEnum.d, 0.3, TestEnum.c, bar, [0.9, 0.8, 0.7], ia, chr, 71),
+                Foo(32, 5., 109.7, TestEnum.c, 3.5, TestEnum.d, bar, [1.9, 1.8, 1.7], ia, chr, 11),
+                Foo(32, 5., 109.7, TestEnum.c, 3.5, TestEnum.d, bar, [1.9, 1.8, 1.7], ia, chr, 11),
+                Foo(32, 5., 109.7, TestEnum.c, 3.5, TestEnum.d, bar, [1.9, 1.8, 1.7], ia, chr, 11),
+            ],
+            [
+                Foo(17, 9., 0.197, TestEnum.d, 0.3, TestEnum.c, bar, [0.9, 0.8, 0.7], ia, chr, 71),
+                Foo(32, 5., 109.7, TestEnum.c, 3.5, TestEnum.d, bar, [1.9, 1.8, 1.7], ia, chr, 11),
+            ],
+            [
+                Foo(17, 9., 0.197, TestEnum.d, 0.3, TestEnum.c, bar, [0.9, 0.8, 0.7], ia, chr, 71),
+                Foo(32, 5., 109.7, TestEnum.c, 3.5, TestEnum.d, bar, [1.9, 1.8, 1.7], ia, chr, 11),
+                Foo(32, 5., 109.7, TestEnum.c, 3.5, TestEnum.d, bar, [1.9, 1.8, 1.7], ia, chr, 11),
+            ],
+        ];
+
+        foreach(el; foo)
+        {
+            alias DataType = typeof(el);
+
+            // Writing to file
+            {
+                auto file  = H5File(filename, H5File.Access.Trunc);
+                auto dataset = Dataset!(DataType).create(file, datasetName);
+                dataset.write(el);
+            }
+
+            // Reading from file
+            {
+                auto file = H5File(filename, H5File.Access.ReadOnly);
+                auto dataset = Dataset!(DataType).open(file, datasetName);
+    
+                DataType foor;            
+                dataset.read(foor);
+                assert(foor == el);
+            }
         }
     }
 }
