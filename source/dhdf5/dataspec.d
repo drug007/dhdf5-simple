@@ -10,7 +10,8 @@ import hdf5.hdf5;
 
 private
 {
-    alias AllowedTypes = TypeTuple!(float, int, double, char, uint, long, ulong);
+    alias AllowedTypes = TypeTuple!(float, int, double, char, uint, long, ulong);  // bool is special type and 
+                                                                                   // is processed like enum 
     enum string[] VectorHdf5Types =
     [
         "H5T_NATIVE_FLOAT",
@@ -166,6 +167,23 @@ struct DataSpecification(Data)
                     static if(disabled)
                     {
                         
+                    }
+                    else
+                    static if(is(T == bool))
+                    {
+                        // TODO Don't know wouldn't it be better if bool enum were created
+                        // once per library in static this()?
+
+                        // Create enum type
+                        hid_t hdf5Type = H5Tenum_create (H5T_NATIVE_INT);                       
+                        
+                        auto val = 0;
+                        auto status = H5Tenum_insert (hdf5Type, "false", &val);
+                        assert(status >= 0);
+
+                        val = 1;
+                        status = H5Tenum_insert (hdf5Type, "true", &val);
+                        assert(status >= 0);
                     }
                     else
                     static if(is(T == enum))
