@@ -179,7 +179,7 @@ struct DataSpecification(Data)
                         foreach (enumMember; EnumMembers!T)
                         {
                             auto val = enumMember;
-                            auto status = H5Tenum_insert (hdf5Type, enumMember.stringof.ptr, &val);
+                            auto status = H5Tenum_insert (hdf5Type, enumMember.stringof.toStringz, &val);
                             assert(status >= 0);
                         }
                     }
