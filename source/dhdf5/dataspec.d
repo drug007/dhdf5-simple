@@ -39,13 +39,13 @@ private
 
 auto countDimensions(T)() if(isStaticArray!T)
 {
-    T t;
+    Unqual!T t;
 
     size_t[] dim;
 
     auto countDimensionsImpl(R)()
     {
-        R r;
+        Unqual!R r;
         dim ~= R.length;
         static if(isStaticArray!(typeof(r[0])))
         {
