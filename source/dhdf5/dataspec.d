@@ -20,7 +20,7 @@ private
         "H5T_NATIVE_B8",
         "H5T_NATIVE_B32",
         "H5T_NATIVE_LONG",
-        "H5T_NATIVE_B32",
+        "H5T_NATIVE_B64",
     ];
 
     template typeToHdf5Type(T)
