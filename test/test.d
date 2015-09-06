@@ -69,7 +69,7 @@ void main()
             auto file = H5File(filename, H5File.Access.ReadOnly);
             auto dataset = Dataset!(DataType).open(file, datasetName);
             
-            dataset.read(foor);
+            foor = dataset.read();
             
             assert(foor == foo);
         }
@@ -97,7 +97,7 @@ void main()
             auto file = H5File(filename, H5File.Access.ReadOnly);
             auto dataset = Dataset!(DataType).open(file, datasetName);
             
-            dataset.read(foor);
+            foor = dataset.read();
             
             assert(foor == foo);
         }
@@ -130,7 +130,7 @@ void main()
                 auto dataset = Dataset!(DataType).open(file, datasetName);
     
                 DataType foor;            
-                dataset.read(foor);
+                foor = dataset.read();
                 assert(foor == el);
             }
         }
@@ -161,7 +161,7 @@ void main()
             auto file = H5File(filename, H5File.Access.ReadOnly);
             auto dataset = Dataset!(DataType).open(file, datasetName);
             
-            dataset.read(foor);
+            foor = dataset.read();
             
             assert(foor == foo);
         }
@@ -195,7 +195,7 @@ void main()
             auto file = H5File(filename, H5File.Access.ReadOnly);
             auto dataset = Dataset!(DataType).open(file, datasetName);
             
-            dataset.read(foor);
+            foor = dataset.read();
             
             assert(foor == foo);
         }
@@ -246,7 +246,7 @@ void main()
                 auto dataset = Dataset!(DataType).open(file, datasetName);
     
                 DataType foor;            
-                dataset.read(foor);
+                foor = dataset.read();
                 assert(foor == el);
             }
         }

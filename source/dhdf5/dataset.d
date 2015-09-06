@@ -160,8 +160,9 @@ struct Dataset(Data)
     /*
      * Read data from the dataset.
      */
-    auto read(ref Data data)
+    auto read()
     {
+        Data data;
         auto filespace = H5Dget_space(_dataset);    /* Get filespace handle first. */
         auto rank      = H5Sget_simple_extent_ndims(filespace);
 
@@ -190,6 +191,8 @@ struct Dataset(Data)
         status = H5Dread(_dataset, _data_spec.tid, memspace, filespace,
                  H5P_DEFAULT, data_out);
         assert(status >= 0);
+
+        return data;
     }
 
     ~this()
