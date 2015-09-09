@@ -209,7 +209,16 @@ struct DataSpecification(Data)
                     }
                     else static if(isDynamicArray!T)
                     {
-                        mixin("hid_t hdf5Type = H5Tvlen_create (" ~ typeToHdf5Type!(ForeachType!T) ~ ");");
+                        alias ElemType = ElementType!T;
+                        static if(is(ElemType == struct))
+                        {
+                            DataAttribute[] da;
+                            auto elemType = createStruct!ElemType(da);
+                            insertAttributes(elemType, da);
+                            hid_t hdf5Type = H5Tvlen_create (elemType);
+                        }
+                        else
+                            mixin("hid_t hdf5Type = H5Tvlen_create (" ~ typeToHdf5Type!(ForeachType!T) ~ ");");
                     }
                     else static if(is(T == struct))
                     {
