@@ -118,6 +118,30 @@ struct Dataset(Data)
         return Dataset!Data(dataset, data_spec);
     }
 
+    /**
+     * Return rank of the dataset
+     */
+    auto rank()
+    {
+        auto space_id = H5Dget_space (_dataset);
+        return H5Sget_simple_extent_ndims(space_id);
+    }
+
+    /**
+     * Return current and maximum size by dimensions.
+     */
+    auto dimensions()
+    {
+        import std.typecons: tuple;
+
+        auto curr_dims = new hsize_t[rank];
+        auto max_dims  = new hsize_t[rank];
+        auto space_id  = H5Dget_space (_dataset);
+        H5Sget_simple_extent_dims(space_id, curr_dims.ptr, max_dims.ptr);
+
+        return tuple(curr_dims, max_dims);
+    }
+    
     /*
      * Wtite data to the dataset; 
      */ 
@@ -127,14 +151,14 @@ struct Dataset(Data)
          * Select a hyperslab.
          */
         auto filespace = H5Dget_space (_dataset);
-        auto rank      = H5Sget_simple_extent_ndims(filespace);
-
-        hsize_t[] dims, offset;
-        offset.length = rank;
+        scope(exit) H5Sclose(filespace);
+        
+        // get current size
+        auto dims = dimensions[0];
+        // set offset to zero for all dimensions
+        auto offset = dims.dup;
         offset[] = 0;
-        dims.length   = rank;
-        auto status = H5Sget_simple_extent_dims(filespace, dims.ptr, null);
-        assert(status >= 0);
+        herr_t status;
 
         static if(isDynamicArray!Data)
         {
@@ -153,6 +177,7 @@ struct Dataset(Data)
 
         status = H5Sselect_hyperslab(filespace, H5S_seloper_t.H5S_SELECT_SET, offset.ptr, null,
                      dims.ptr, null);
+        assert(status >= 0);
         status = H5Dwrite(_dataset, _data_spec.tid, H5S_ALL, H5S_ALL, H5P_DEFAULT, data_in);
         assert(status >= 0);
     }
@@ -164,12 +189,14 @@ struct Dataset(Data)
     {
         Data data;
         auto filespace = H5Dget_space(_dataset);    /* Get filespace handle first. */
-        auto rank      = H5Sget_simple_extent_ndims(filespace);
-
-        hsize_t[] dims;
-        dims.length = rank;
-        auto status = H5Sget_simple_extent_dims(filespace, dims.ptr, null);
-        assert(status >= 0);
+        scope(exit) H5Sclose(filespace);
+        
+        // get current size
+        auto dims = dimensions[0];
+        // set offset to zero for all dimensions
+        auto offset = dims.dup;
+        offset[] = 0;
+        herr_t status;
 
         static if(isDynamicArray!Data)
         {
@@ -184,9 +211,10 @@ struct Dataset(Data)
          * Define the memory space to read dataset.
          */
         auto memspace = H5Screate_simple(castFrom!size_t.to!int(dims.length), dims.ptr, null);
+        scope(exit) H5Sclose(memspace);
      
         /*
-         * Read dataset back and display.
+         * Read dataset
          */
         status = H5Dread(_dataset, _data_spec.tid, memspace, filespace,
                  H5P_DEFAULT, data_out);
