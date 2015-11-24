@@ -141,7 +141,55 @@ struct Dataset(Data)
 
         return tuple(curr_dims, max_dims);
     }
-    
+
+    /**
+     * Read count data from file starting with offset 
+     */
+    auto read(hsize_t offset, hsize_t count)
+    {
+        const max_size = dimensions[1][0];
+        assert((offset+count) < max_size);
+        /*
+        * get the file dataspace.
+        */
+        auto dataspace = H5Dget_space(_dataset); // dataspace identifier
+        scope(exit) H5Sclose(dataspace);
+        
+        auto file_offset = [offset];
+        auto file_count  = [count];
+        auto status = H5Sselect_hyperslab(dataspace, H5S_seloper_t.H5S_SELECT_SET, file_offset.ptr, null, file_count.ptr, null);
+        assert(status >= 0);
+        /*
+        * Define memory dataspace.
+        */
+        auto mem_offset = [0UL];
+        auto mem_count  = [count];
+        auto dimsm = mem_count;
+        auto memspace = H5Screate_simple(rank, dimsm.ptr, null);
+        scope(exit) H5Sclose(memspace);
+         
+        /*
+        * Define memory hyperslab.
+        */
+        status = H5Sselect_hyperslab(memspace, H5S_seloper_t.H5S_SELECT_SET, mem_offset.ptr, null, mem_count.ptr, null);
+        assert(status >=0);
+
+        Data data;
+        static if(isDynamicArray!Data)
+        {
+            setDynArrayDimensions(data, [count]);
+            auto data_out = data.ptr;
+        }
+        else
+        {
+            auto data_out = &data;
+        }
+        
+        status = H5Dread(_dataset, _data_spec.tid, memspace, dataspace, H5P_DEFAULT, data_out);
+        assert(status >= 0);
+        return data;
+    }
+
     /*
      * Wtite data to the dataset; 
      */ 

@@ -262,6 +262,12 @@ void main()
                 assert(dims[0][0]     == el.length); // current size is equal to el size
                 assert(dims[1].length == dataset.rank);
                 assert(dims[1][0]     == hsize_t.max); // unlimited size
+                // reading the first element of data - offset is 0, count is 1
+                assert(dataset.read(0, 1) == [ el[0] ]);
+                // reading the first two elements of data - offset is 0, count is 2
+                assert(dataset.read(0, 2) == [ el[0], el[1] ]);
+                // reading the second element of data - offset is 1, count is 1
+                assert(dataset.read(1, 1) == [ el[1] ]);
             }
         }
     }
