@@ -53,5 +53,5 @@ struct H5File
     }
 
 private:
-    hid_t _file;
+    hid_t _file = -1;
 }

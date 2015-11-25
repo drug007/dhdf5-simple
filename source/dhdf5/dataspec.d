@@ -327,5 +327,5 @@ struct DataSpecification(Data)
 
 private:
     DataAttribute[] _attributes;
-    immutable hid_t _tid;
+    immutable hid_t _tid = -1;
 }

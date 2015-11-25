@@ -286,6 +286,6 @@ struct Dataset(Data)
     }
 
 private:
-    hid_t _dataset;
+    hid_t _dataset = -1;
     DataSpecType _data_spec;
 }
