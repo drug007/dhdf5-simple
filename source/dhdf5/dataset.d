@@ -124,6 +124,7 @@ struct Dataset(Data)
     auto rank()
     {
         auto space_id = H5Dget_space (_dataset);
+        assert(space_id >= 0);
         return H5Sget_simple_extent_ndims(space_id);
     }
 
@@ -137,6 +138,7 @@ struct Dataset(Data)
         auto curr_dims = new hsize_t[rank];
         auto max_dims  = new hsize_t[rank];
         auto space_id  = H5Dget_space (_dataset);
+        assert(space_id >= 0);
         H5Sget_simple_extent_dims(space_id, curr_dims.ptr, max_dims.ptr);
 
         return tuple(curr_dims, max_dims);
@@ -153,6 +155,7 @@ struct Dataset(Data)
         * get the file dataspace.
         */
         auto dataspace = H5Dget_space(_dataset); // dataspace identifier
+        assert(dataspace >= 0);
         scope(exit) H5Sclose(dataspace);
         
         auto file_offset = [offset];
@@ -199,6 +202,7 @@ struct Dataset(Data)
          * Select a hyperslab.
          */
         auto filespace = H5Dget_space (_dataset);
+        assert(filespace >= 0);
         scope(exit) H5Sclose(filespace);
         
         // get current size
@@ -237,6 +241,7 @@ struct Dataset(Data)
     {
         Data data;
         auto filespace = H5Dget_space(_dataset);    /* Get filespace handle first. */
+        assert(filespace >= 0);
         scope(exit) H5Sclose(filespace);
         
         // get current size
@@ -273,7 +278,9 @@ struct Dataset(Data)
 
     ~this()
     {
+        assert(_dataset >= 0);
         auto space = H5Dget_space(_dataset);
+        assert(space >= 0);
         H5Sclose(space);
         H5Dclose(_dataset);
     }
