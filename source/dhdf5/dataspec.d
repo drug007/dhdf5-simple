@@ -10,8 +10,8 @@ import hdf5.hdf5;
 
 private
 {
-    alias AllowedTypes = TypeTuple!(float, int, double, char, uint, long, ulong);  // bool is special type and 
-                                                                                   // is processed like enum 
+    alias AllowedTypes = TypeTuple!(float, int, double, char, uint, long, ulong, short);  // bool is special type and 
+                                                                                          // is processed like enum 
     enum string[] VectorHdf5Types =
     [
         "H5T_NATIVE_FLOAT",
@@ -21,6 +21,7 @@ private
         "H5T_NATIVE_B32",
         "H5T_NATIVE_LONG",
         "H5T_NATIVE_B64",
+        "H5T_NATIVE_SHORT",
     ];
 
     template typeToHdf5Type(T)
@@ -203,9 +204,26 @@ struct DataSpecification(Data)
                     }
                     else static if(isStaticArray!T)
                     {
-                        import std.conv: text;
-                        alias dim = countDimensions!T;
-                        mixin("hid_t hdf5Type = H5Tarray_create2 (" ~ typeToHdf5Type!(ForeachType!T) ~ ", " ~ dim.length.text ~ ", dim.ptr);");
+                        alias ElemType = ForeachType!T;
+                        static if(is(ElemType == struct))
+                        {
+                            import std.conv: castFrom;
+
+                            DataAttribute[] da;
+                            auto elemType = createStruct!ElemType(da);
+                            insertAttributes(elemType, da);
+                            //hid_t hdf5Type = H5Tvlen_create (elemType);
+                            alias dim = countDimensions!T;
+                            //mixin("hid_t hdf5Type = H5Tarray_create2 (" ~ typeToHdf5Type!ElemType ~ ", " ~ dim.length.text ~ ", dim.ptr);");
+                            hid_t hdf5Type = H5Tarray_create2 (elemType, castFrom!size_t.to!uint(dim.length), dim.ptr);
+                        }
+                        else
+                        {
+                            import std.conv: text;
+
+                            alias dim = countDimensions!T;
+                            mixin("hid_t hdf5Type = H5Tarray_create2 (" ~ typeToHdf5Type!ElemType ~ ", " ~ dim.length.text ~ ", dim.ptr);");
+                        }
                     }
                     else static if(isDynamicArray!T)
                     {
