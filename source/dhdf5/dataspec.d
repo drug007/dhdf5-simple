@@ -155,7 +155,7 @@ struct DataSpecification(Data)
             foreach (member; FieldNameTuple!D)
             {
                 enum fullName = "D." ~ member;
-                enum hdf5Name = fullyQualifiedName!D ~ "." ~ member;
+                enum hdf5Name = (Unqual!D).stringof ~ "." ~ member;
 
                 mixin("alias T = typeof(" ~ fullName ~ ");");
                 
