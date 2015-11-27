@@ -194,11 +194,10 @@ struct DataSpecification(Data)
                         alias BaseEnumType = OriginalType!T;
                         mixin("hid_t hdf5Type = H5Tenum_create (" ~ typeToHdf5Type!BaseEnumType ~ ");");
                         
-                        
-                        foreach (enumMember; EnumMembers!T)
+                        foreach (size_t cnt, enumMember; __traits(allMembers, T))
                         {
-                            auto val = enumMember;
-                            auto status = H5Tenum_insert (hdf5Type, enumMember.stringof.toStringz, &val);
+                            auto val = cnt;
+                            auto status = H5Tenum_insert (hdf5Type, (T.stringof ~ "." ~ enumMember).toStringz, &val);
                             assert(status >= 0);
                         }
                     }
