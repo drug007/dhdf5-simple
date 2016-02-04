@@ -62,10 +62,13 @@ struct Dataset(Data)
     {
         alias DataSpecType = typeof(DataSpecification!Data.make());
 
+        bool _inited;
+
         this(hid_t dataset, DataSpecType data_spec)
         {
             _dataset = dataset;
             _data_spec = data_spec;
+            _inited = true; // TODO would be better to use native hdf5 means to detect if resources are freed
         }
     }
 
@@ -276,13 +279,23 @@ struct Dataset(Data)
         return data;
     }
 
-    ~this()
+    void close()
     {
+        if(!_inited)
+            return;
+
+        scope(success) _inited = false;
+
         assert(_dataset >= 0);
         auto space = H5Dget_space(_dataset);
         assert(space >= 0);
         H5Sclose(space);
         H5Dclose(_dataset);
+    }
+
+    ~this()
+    {
+        close();
     }
 
 private:
