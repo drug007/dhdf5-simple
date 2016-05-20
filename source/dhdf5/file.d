@@ -6,8 +6,6 @@ import hdf5.hdf5;
 
 struct H5File
 {
-    @disable this();
-
     enum Access
     {
         ReadOnly  = H5F_ACC_RDONLY, /*absence of rdwr => rd-only */
