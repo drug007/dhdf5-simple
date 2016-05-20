@@ -153,7 +153,7 @@ struct Dataset(Data)
     auto read(hsize_t offset, hsize_t count)
     {
         const max_size = dimensions[1][0];
-        assert((offset+count) < max_size);
+        assert((offset+count) <= max_size);
         /*
         * get the file dataspace.
         */
