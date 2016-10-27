@@ -121,7 +121,7 @@ struct DataSpecification(Data)
 {    
     alias DataType = Data;
 
-    private static make(S)() if(is(S == struct))
+    private static makeImpl(S)() if(is(S == struct))
     {
         DataAttribute[] attributes;
 
@@ -279,14 +279,14 @@ struct DataSpecification(Data)
         return RefCounted!(DataSpecification!S)(tid, attributes);
     }
     
-    private static make(D)() if(isScalarType!D)
+    private static makeImpl(D)() if(isScalarType!D)
     {
         mixin("hid_t tid = " ~ typeToHdf5Type!D ~ ";");
 
         return RefCounted!(DataSpecification!D)(tid, (DataAttribute[]).init);
     }
 
-    private static make(D)() if(isStaticArray!D)
+    private static makeImpl(D)() if(isStaticArray!D)
     {
         import std.conv: text;
 
@@ -297,7 +297,7 @@ struct DataSpecification(Data)
         return RefCounted!(DataSpecification!D)(tid, (DataAttribute[]).init);
     }
 
-    private static make(D)() if(isDynamicArray!D)
+    private static makeImpl(D)() if(isDynamicArray!D)
     {
         alias ElemType = ForeachType!D;
 
@@ -310,11 +310,11 @@ struct DataSpecification(Data)
         static if(isArray!Data) // if "outer" type of data is array it's processed on Dataset level,
                                 // so skip it
         {
-            return make!(ForeachType!Data);
+            return makeImpl!(ForeachType!Data);
         }
         else
         {
-            return make!(Data);
+            return makeImpl!(Data);
         }
     }
 
