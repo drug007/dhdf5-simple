@@ -12,29 +12,29 @@ struct H5File
         ReadWrite = H5F_ACC_RDWR,   /*open for read and write    */
         Trunc     = H5F_ACC_TRUNC,  /*overwrite existing files   */
         Exclude   = H5F_ACC_EXCL,   /*fail if file already exists*/
-        Debug     = H5F_ACC_DEBUG,  /*print debug info           */
         Create    = H5F_ACC_CREAT,  /*create non-existing files  */
     };
 
-    this(string filename, uint flags, hid_t fapl_id = H5P_DEFAULT, hid_t fcpl_id = H5P_DEFAULT)
+    this(string filename, Access mode, hid_t fapl_id = H5P_DEFAULT, hid_t fcpl_id = H5P_DEFAULT)
     {
-        // remove Access.Debug flag if any
-        auto f = flags & ~Access.Debug;
-        if(((f == Access.Trunc) && (f != Access.Exclude)) ||
-           ((f != Access.Trunc) && (f == Access.Exclude)))
+        final switch(mode)
         {
-            _file = H5Fcreate(filename.toStringz, flags, fcpl_id, fapl_id);
-            assert(_file >= 0);
+            case Access.Trunc:
+            case Access.Exclude:
+            {
+                _file = H5Fcreate(filename.toStringz, mode, fcpl_id, fapl_id);
+                break;
+            }
+            case Access.ReadOnly:
+            case Access.ReadWrite:
+            {
+                _file = H5Fopen(filename.toStringz, mode, fapl_id);
+                break;
+            }
+            case Access.Create:
+                assert (0, "Flag H5F_ACC_CREAT is not supported.");
         }
-        else
-        if(((f == Access.ReadOnly) && (f != Access.ReadWrite)) ||
-           ((f != Access.ReadOnly) && (f == Access.ReadWrite)))
-        {
-            _file = H5Fopen(filename.toStringz, flags, fapl_id);
-            assert(_file >= 0);
-        }
-        else
-            assert(0, "Unknown flags combination.");
+        assert(_file >= 0);
     }
 
     ~this()
