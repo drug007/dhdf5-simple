@@ -259,6 +259,34 @@ struct Dataset(Data)
 	}
 
 	/*
+	 * Wtite data to the dataset;
+	 */
+	static if (isArray!Data)
+	auto write(Data data, hsize_t[] offset)
+	{
+		assert(offset.length == _rank);
+		hsize_t[] count = [data.length];
+		assert(  count.length == _rank);
+		herr_t status;
+
+		auto filespace = Dataspace (_dataset);
+		status = H5Sselect_hyperslab(filespace, H5S_seloper_t.H5S_SELECT_SET, offset.ptr, null, count.ptr, null);
+		assert(status >= 0);
+
+		auto memspace = H5Screate_simple(rank, count.ptr, null);
+		scope(exit) H5Sclose(memspace);
+
+		status = H5Dwrite(_dataset, _data_spec.tid, memspace, filespace, H5P_DEFAULT, data.ptr);
+		assert(status >= 0);
+	}
+
+	auto setShape(hsize_t[] extent)
+	{
+		auto status = H5Dset_extent (_dataset, extent.ptr);
+		assert(status >= 0);
+	}
+
+	/*
 	 * Read data from the dataset.
 	 */
 	auto read()

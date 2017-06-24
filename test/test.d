@@ -215,17 +215,17 @@ void main()
 			[
 				Foo(17, 9., 0.197, TestEnum.d, 0.3, TestEnum.c, bar, [0.9, 0.8, 0.7], ia, chr, 71),
 				Foo(32, 5., 109.7, TestEnum.c, 3.5, TestEnum.d, bar, [1.9, 1.8, 1.7], ia, chr, 11),
-				Foo(32, 5., 109.7, TestEnum.c, 3.5, TestEnum.d, bar, [1.9, 1.8, 1.7], ia, chr, 11),
-				Foo(32, 5., 109.7, TestEnum.c, 3.5, TestEnum.d, bar, [1.9, 1.8, 1.7], ia, chr, 11),
+				Foo(33, 5., 109.7, TestEnum.c, 3.5, TestEnum.d, bar, [1.9, 1.8, 1.7], ia, chr, 11),
+				Foo(34, 5., 109.7, TestEnum.c, 3.5, TestEnum.d, bar, [1.9, 1.8, 1.7], ia, chr, 11),
 			],
 			[
-				Foo(17, 9., 0.197, TestEnum.d, 0.3, TestEnum.c, bar, [0.9, 0.8, 0.7], ia, chr, 71),
-				Foo(32, 5., 109.7, TestEnum.c, 3.5, TestEnum.d, bar, [1.9, 1.8, 1.7], ia, chr, 11),
+				Foo(47, 9., 0.197, TestEnum.d, 0.3, TestEnum.c, bar, [0.9, 0.8, 0.7], ia, chr, 71),
+				Foo(48, 5., 109.7, TestEnum.c, 3.5, TestEnum.d, bar, [1.9, 1.8, 1.7], ia, chr, 11),
 			],
 			[
-				Foo(17, 9., 0.197, TestEnum.d, 0.3, TestEnum.c, bar, [0.9, 0.8, 0.7], ia, chr, 71),
-				Foo(32, 5., 109.7, TestEnum.c, 3.5, TestEnum.d, bar, [1.9, 1.8, 1.7], ia, chr, 11),
-				Foo(32, 5., 109.7, TestEnum.c, 3.5, TestEnum.d, bar, [1.9, 1.8, 1.7], ia, chr, 11),
+				Foo(57, 9., 0.197, TestEnum.d, 0.3, TestEnum.c, bar, [0.9, 0.8, 0.7], ia, chr, 71),
+				Foo(62, 5., 109.7, TestEnum.c, 3.5, TestEnum.d, bar, [1.9, 1.8, 1.7], ia, chr, 11),
+				Foo(72, 5., 109.7, TestEnum.c, 3.5, TestEnum.d, bar, [1.9, 1.8, 1.7], ia, chr, 11),
 			],
 		];
 
@@ -272,5 +272,20 @@ void main()
 				assert(dataset.read(1, 1) == [ el[1] ]);
 			}
 		}
+
+		auto file  = H5File("1" ~ filename, H5File.Access.Trunc);
+		auto data = foo[0][];
+
+		auto dataset = Dataset!(typeof(data)).create(file, datasetName);
+
+		dataset.setShape([4]);
+		dataset.write(data[0..2], [0]);
+		dataset.write(data[2..3], [2]);
+		dataset.write(data[3..4], [3]);
+		dataset.setShape([5]);
+		dataset.write(data[1..2], [4]);
+		dataset.setShape([6]);
+		dataset.write(data[2..3], [5]);
+		dataset.setShape([1]);
 	}
 }
