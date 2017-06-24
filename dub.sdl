@@ -1,8 +1,8 @@
 name "dhdf5-simple"
 description "A minimal D application."
-copyright "Copyright © 2015, drug"
+copyright "Copyright © 2015-2017, drug"
 authors "drug"
-license "public domain"
+license "BSL"
 
 libs "hdf5"
 

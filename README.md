@@ -10,7 +10,7 @@ HDF5 is subject to [its own license](COPYING).
 
 ## Features
 
-The first purpose is automatic converstion D types to HDF5 types.
+The first purpose is automatic conversion D types to HDF5 types.
 
 ## Running
 
