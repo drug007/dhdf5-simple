@@ -69,6 +69,13 @@ struct Dataset(Data)
 			_dataset = dataset;
 			_data_spec = data_spec;
 			_inited = true; // TODO would be better to use native hdf5 means to detect if resources are freed
+
+			auto space_id = H5Dget_space (_dataset);
+			assert(space_id >= 0);
+			scope(exit) H5Sclose(space_id);
+			_rank = H5Sget_simple_extent_ndims(space_id);
+			_curr_shape.length = _rank;
+			_max_shape.length = _rank;
 		}
 	}
 
@@ -126,25 +133,31 @@ struct Dataset(Data)
 	 */
 	auto rank()
 	{
-		auto space_id = H5Dget_space (_dataset);
-		assert(space_id >= 0);
-		return H5Sget_simple_extent_ndims(space_id);
+		return _rank;
 	}
 
 	/**
-	 * Return current and maximum size by dimensions.
+	 * Return current shape, that can change during programm running.
 	 */
-	auto dimensions()
+	auto currShape()
 	{
 		import std.typecons: tuple;
 
-		auto curr_dims = new hsize_t[rank];
-		auto max_dims  = new hsize_t[rank];
 		auto space_id  = H5Dget_space (_dataset);
 		assert(space_id >= 0);
-		H5Sget_simple_extent_dims(space_id, curr_dims.ptr, max_dims.ptr);
+		scope(exit) H5Sclose(space_id);
 
-		return tuple(curr_dims, max_dims);
+		H5Sget_simple_extent_dims(space_id, _curr_shape.ptr, _max_shape.ptr);
+
+		return _curr_shape[];
+	}
+
+	/**
+	 * Return maximal shape, that doesn't change during program running.
+	 */
+	auto maxShape() const pure
+	{
+		return _max_shape[];
 	}
 
 	/**
@@ -152,8 +165,7 @@ struct Dataset(Data)
 	 */
 	auto read(hsize_t offset, hsize_t count)
 	{
-		const max_size = dimensions[1][0];
-		assert((offset+count) <= max_size);
+		assert((offset+count) <= _max_shape[0]);
 		/*
 		* get the file dataspace.
 		*/
@@ -202,16 +214,15 @@ struct Dataset(Data)
 	auto write(ref Data data)
 	{
 		/*
-		 * Select a hyperslab.
+		 * Make a copy of dataspace of the dataset.
 		 */
 		auto filespace = H5Dget_space (_dataset);
 		assert(filespace >= 0);
 		scope(exit) H5Sclose(filespace);
 
-		// get current size
-		auto dims = dimensions[0];
+		// get copy of the current shape
+		auto offset = currShape().dup;
 		// set offset to zero for all dimensions
-		auto offset = dims.dup;
 		offset[] = 0;
 		herr_t status;
 
@@ -231,7 +242,7 @@ struct Dataset(Data)
 		}
 
 		status = H5Sselect_hyperslab(filespace, H5S_seloper_t.H5S_SELECT_SET, offset.ptr, null,
-					 dims.ptr, null);
+					 currShape().ptr, null);
 		assert(status >= 0);
 		status = H5Dwrite(_dataset, _data_spec.tid, H5S_ALL, H5S_ALL, H5P_DEFAULT, data_in);
 		assert(status >= 0);
@@ -248,15 +259,14 @@ struct Dataset(Data)
 		scope(exit) H5Sclose(filespace);
 
 		// get current size
-		auto dims = dimensions[0];
+		auto offset = currShape().dup;
 		// set offset to zero for all dimensions
-		auto offset = dims.dup;
 		offset[] = 0;
 		herr_t status;
 
 		static if(isDynamicArray!Data)
 		{
-			setDynArrayDimensions(data, dims);
+			setDynArrayDimensions(data, currShape());
 			auto data_out = data.ptr;
 		}
 		else
@@ -266,7 +276,7 @@ struct Dataset(Data)
 		/*
 		 * Define the memory space to read dataset.
 		 */
-		auto memspace = H5Screate_simple(castFrom!size_t.to!int(dims.length), dims.ptr, null);
+		auto memspace = H5Screate_simple(_rank, currShape().ptr, null);
 		scope(exit) H5Sclose(memspace);
 
 		/*
@@ -301,4 +311,9 @@ struct Dataset(Data)
 private:
 	hid_t _dataset = -1;
 	DataSpecType _data_spec;
+	immutable int _rank;
+	// Current shape of dataset
+	hsize_t[] _curr_shape;
+	// Maximal shape of dataset
+	hsize_t[] _max_shape;
 }

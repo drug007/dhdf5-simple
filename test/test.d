@@ -240,11 +240,12 @@ void main()
 				dataset.write(el);
 
 				assert(dataset.rank   == 1); // every el instance has the only dimension
-				auto dims = dataset.dimensions; // dims[0] - current size(s), dims[1] - maximum size(s)
-				assert(dims[0].length == dataset.rank);
-				assert(dims[0][0]     == el.length); // current size is equal to el size
-				assert(dims[1].length == dataset.rank);
-				assert(dims[1][0]     == hsize_t.max); // unlimited size
+				auto curr_shape = dataset.currShape;
+				assert(curr_shape.length == dataset.rank);
+				assert(curr_shape[0]     == el.length); // current size is equal to el size
+				auto max_shape = dataset.maxShape();
+				assert(max_shape.length == dataset.rank);
+				assert(max_shape[0]     == hsize_t.max); // unlimited size
 			}
 
 			// Reading from file
@@ -257,11 +258,12 @@ void main()
 				assert(foor == el);
 
 				assert(dataset.rank   == 1); // every el instance has the only dimension
-				auto dims = dataset.dimensions; // dims[0] - current size(s), dims[1] - maximum size(s)
-				assert(dims[0].length == dataset.rank);
-				assert(dims[0][0]     == el.length); // current size is equal to el size
-				assert(dims[1].length == dataset.rank);
-				assert(dims[1][0]     == hsize_t.max); // unlimited size
+				auto curr_shape = dataset.currShape; // curr_shape - current size(s), max_shape - maximum size(s)
+				assert(curr_shape.length == dataset.rank);
+				assert(curr_shape[0]     == el.length); // current size is equal to el size
+				auto max_shape = dataset.maxShape();
+				assert(max_shape.length == dataset.rank);
+				assert(max_shape[0]     == hsize_t.max); // unlimited size
 				// reading the first element of data - offset is 0, count is 1
 				assert(dataset.read(0, 1) == [ el[0] ]);
 				// reading the first two elements of data - offset is 0, count is 2
