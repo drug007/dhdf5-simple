@@ -54,6 +54,24 @@ private
 		setDynArrayDimensions(res2, dim);
 		assert(res2.length == 1);
 	}
+
+	struct Dataspace
+	{
+		hid_t hid;
+
+		this(hid_t dataset)
+		{
+			hid = H5Dget_space (dataset);
+			assert(hid >= 0);
+		}
+
+		~this()
+		{
+			H5Sclose (hid);
+		}
+
+		alias hid this;
+	}
 }
 
 struct Dataset(Data)
@@ -70,9 +88,7 @@ struct Dataset(Data)
 			_data_spec = data_spec;
 			_inited = true; // TODO would be better to use native hdf5 means to detect if resources are freed
 
-			auto space_id = H5Dget_space (_dataset);
-			assert(space_id >= 0);
-			scope(exit) H5Sclose(space_id);
+			auto space_id = Dataspace (_dataset);
 			_rank = H5Sget_simple_extent_ndims(space_id);
 			_curr_shape.length = _rank;
 			_max_shape.length = _rank;
@@ -143,9 +159,7 @@ struct Dataset(Data)
 	{
 		import std.typecons: tuple;
 
-		auto space_id  = H5Dget_space (_dataset);
-		assert(space_id >= 0);
-		scope(exit) H5Sclose(space_id);
+		auto space_id  = Dataspace (_dataset);
 
 		H5Sget_simple_extent_dims(space_id, _curr_shape.ptr, _max_shape.ptr);
 
@@ -169,9 +183,7 @@ struct Dataset(Data)
 		/*
 		* get the file dataspace.
 		*/
-		auto dataspace = H5Dget_space(_dataset); // dataspace identifier
-		assert(dataspace >= 0);
-		scope(exit) H5Sclose(dataspace);
+		auto dataspace = Dataspace (_dataset); // dataspace identifier
 
 		auto file_offset = [offset];
 		auto file_count  = [count];
@@ -216,9 +228,7 @@ struct Dataset(Data)
 		/*
 		 * Make a copy of dataspace of the dataset.
 		 */
-		auto filespace = H5Dget_space (_dataset);
-		assert(filespace >= 0);
-		scope(exit) H5Sclose(filespace);
+		auto filespace = Dataspace (_dataset);
 
 		// get copy of the current shape
 		auto offset = currShape().dup;
@@ -254,9 +264,7 @@ struct Dataset(Data)
 	auto read()
 	{
 		Data data;
-		auto filespace = H5Dget_space(_dataset);    /* Get filespace handle first. */
-		assert(filespace >= 0);
-		scope(exit) H5Sclose(filespace);
+		auto filespace = Dataspace(_dataset);
 
 		// get current size
 		auto offset = currShape().dup;
@@ -297,9 +305,6 @@ struct Dataset(Data)
 		scope(success) _inited = false;
 
 		assert(_dataset >= 0);
-		auto space = H5Dget_space(_dataset);
-		assert(space >= 0);
-		H5Sclose(space);
 		H5Dclose(_dataset);
 	}
 
