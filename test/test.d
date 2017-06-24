@@ -9,51 +9,51 @@ import dhdf5.file;
 
 struct Bar
 {
-    enum SOME_ENUM = 4;
+	enum SOME_ENUM = 4;
 
-    int i;
-    float f;
-    double d;
-    char[SOME_ENUM] char_array;
+	int i;
+	float f;
+	double d;
+	char[SOME_ENUM] char_array;
 }
 
 enum TestEnum { a, b, c, d }
 
 struct Foo
 {
-    enum SOME_ENUM = 8;
+	enum SOME_ENUM = 8;
 
-    int i;
-    float f;
-    double d;
-    TestEnum test_enum;
-    float f2;
-    TestEnum test_enum2;
-    Bar bar;
-    float[] fa;
-    int[3] ia;
-    @("nonHDF5disabled")
-    char[SOME_ENUM] char_array;
-    union {
-        int one;
-        @("HDF5disabled")
-        int thesame;
-    }
+	int i;
+	float f;
+	double d;
+	TestEnum test_enum;
+	float f2;
+	TestEnum test_enum2;
+	Bar bar;
+	float[] fa;
+	int[3] ia;
+	@("nonHDF5disabled")
+	char[SOME_ENUM] char_array;
+	union {
+		int one;
+		@("HDF5disabled")
+		int thesame;
+	}
 }
 
 void main()
 {
-    string datasetName = "dataset";
+	string datasetName = "dataset";
 
-    H5open();
+	H5open();
 
-    // Scalar
-    {
-        alias DataType = int;
+	// Scalar
+	{
+		alias DataType = int;
 
         DataType foo, foor;
         string filename = "autoscalar.h5";
-    
+
 
         foo = 100;
 
@@ -68,9 +68,9 @@ void main()
         {
             auto file = H5File(filename, H5File.Access.ReadOnly);
             auto dataset = Dataset!(DataType).open(file, datasetName);
-            
+
             foor = dataset.read();
-            
+
             assert(foor == foo);
         }
     }
@@ -81,7 +81,7 @@ void main()
 
         DataType foo, foor;
         string filename = "staticarrayofscalar.h5";
-    
+
 
         foo = [100, 123, 200];
 
@@ -96,9 +96,9 @@ void main()
         {
             auto file = H5File(filename, H5File.Access.ReadOnly);
             auto dataset = Dataset!(DataType).open(file, datasetName);
-            
+
             foor = dataset.read();
-            
+
             assert(foor == foo);
         }
     }
@@ -106,7 +106,7 @@ void main()
     // Dynamic array of scalars
     {
         string filename = "dynamicarrayofscalar.h5";
-    
+
         auto foo = [
             [100, 123, 200],
             [1, 12, 20],
@@ -128,8 +128,8 @@ void main()
             {
                 auto file = H5File(filename, H5File.Access.ReadOnly);
                 auto dataset = Dataset!(DataType).open(file, datasetName);
-    
-                DataType foor;            
+
+                DataType foor;
                 foor = dataset.read();
                 assert(foor == el);
             }
@@ -144,7 +144,7 @@ void main()
         Bar bar = Bar(123, 12.3, 1.23, "fdsa");
         int[3] ia = [1, 2, 3];
         char[8] chr = "abcdefgh";
-        
+
         DataType foo, foor;
 
         foo = Foo(17, 9., 0.197, TestEnum.d, 0.3, TestEnum.c, bar, [0.9, 0.8, 0.7], ia, chr, 71);
@@ -160,9 +160,9 @@ void main()
         {
             auto file = H5File(filename, H5File.Access.ReadOnly);
             auto dataset = Dataset!(DataType).open(file, datasetName);
-            
+
             foor = dataset.read();
-            
+
             assert(foor == foo);
         }
     }
@@ -175,7 +175,7 @@ void main()
         Bar bar = Bar(123, 12.3, 1.23, "fdsa");
         int[3] ia = [1, 2, 3];
         char[8] chr = "abcdefgh";
-        
+
         DataType foo, foor;
 
         foo = [
@@ -194,9 +194,9 @@ void main()
         {
             auto file = H5File(filename, H5File.Access.ReadOnly);
             auto dataset = Dataset!(DataType).open(file, datasetName);
-            
+
             foor = dataset.read();
-            
+
             assert(foor == foo);
         }
     }
@@ -238,7 +238,7 @@ void main()
                 auto file  = H5File(filename, H5File.Access.Trunc);
                 auto dataset = Dataset!(DataType).create(file, datasetName);
                 dataset.write(el);
-                
+
                 assert(dataset.rank   == 1); // every el instance has the only dimension
                 auto dims = dataset.dimensions; // dims[0] - current size(s), dims[1] - maximum size(s)
                 assert(dims[0].length == dataset.rank);
@@ -251,8 +251,8 @@ void main()
             {
                 auto file = H5File(filename, H5File.Access.ReadOnly);
                 auto dataset = Dataset!(DataType).open(file, datasetName);
-    
-                DataType foor;            
+
+                DataType foor;
                 foor = dataset.read();
                 assert(foor == el);
 

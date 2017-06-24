@@ -105,7 +105,7 @@ struct Dataset(Data)
             hsize_t[1] curr_dim = [ LENGTH ];
             auto max_dim = curr_dim;
         }
-        
+
         auto space = H5Screate_simple(castFrom!(size_t).to!int(curr_dim.length), curr_dim.ptr, max_dim.ptr);
         auto data_spec = DataSpecification!Data.make();
         auto dataset = H5Dcreate2(file.tid, name.toStringz, data_spec.tid, space, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
@@ -190,15 +190,15 @@ struct Dataset(Data)
         {
             auto data_out = &data;
         }
-        
+
         status = H5Dread(_dataset, _data_spec.tid, memspace, dataspace, H5P_DEFAULT, data_out);
         assert(status >= 0);
         return data;
     }
 
     /*
-     * Wtite data to the dataset; 
-     */ 
+     * Wtite data to the dataset;
+     */
     auto write(ref Data data)
     {
         /*
@@ -207,7 +207,7 @@ struct Dataset(Data)
         auto filespace = H5Dget_space (_dataset);
         assert(filespace >= 0);
         scope(exit) H5Sclose(filespace);
-        
+
         // get current size
         auto dims = dimensions[0];
         // set offset to zero for all dimensions
@@ -246,7 +246,7 @@ struct Dataset(Data)
         auto filespace = H5Dget_space(_dataset);    /* Get filespace handle first. */
         assert(filespace >= 0);
         scope(exit) H5Sclose(filespace);
-        
+
         // get current size
         auto dims = dimensions[0];
         // set offset to zero for all dimensions
@@ -268,7 +268,7 @@ struct Dataset(Data)
          */
         auto memspace = H5Screate_simple(castFrom!size_t.to!int(dims.length), dims.ptr, null);
         scope(exit) H5Sclose(memspace);
-     
+
         /*
          * Read dataset
          */
