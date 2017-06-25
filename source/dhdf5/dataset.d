@@ -80,18 +80,20 @@ struct Dataset(Data)
 	{
 		alias DataSpecType = typeof(DataSpecification!Data.make());
 
-		bool _inited;
-
 		this(hid_t dataset, DataSpecType data_spec)
 		{
 			_dataset = dataset;
 			_data_spec = data_spec;
-			_inited = true; // TODO would be better to use native hdf5 means to detect if resources are freed
 
 			auto space_id = Dataspace (_dataset);
 			_rank = H5Sget_simple_extent_ndims(space_id);
 			_curr_shape.length = _rank;
 			_max_shape.length = _rank;
+		}
+
+		~this()
+		{
+			H5Dclose(_dataset);
 		}
 	}
 
@@ -325,24 +327,8 @@ struct Dataset(Data)
 		return data;
 	}
 
-	void close()
-	{
-		if(!_inited)
-			return;
-
-		scope(success) _inited = false;
-
-		assert(_dataset >= 0);
-		H5Dclose(_dataset);
-	}
-
-	~this()
-	{
-		close();
-	}
-
 private:
-	hid_t _dataset = -1;
+	hid_t _dataset;
 	DataSpecType _data_spec;
 	immutable int _rank;
 	// Current shape of dataset
