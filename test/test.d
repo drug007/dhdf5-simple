@@ -110,12 +110,11 @@ void main()
 		foreach(el; foo)
 		{
 			alias DataType = typeof(el);
-			alias DataSpecType = typeof(DataSpecification!DataType.make());
 
 			// Writing to file
 			{
 				auto file  = H5File(filename, H5File.Access.Trunc);
-				auto dataset = Dataset!(DataType, DataSpecType).create(file, datasetName);
+				auto dataset = Dataset!(DataType).create(file, datasetName);
 				dataset.write(el);
 
 				assert(dataset.rank   == 1); // every el instance has the only dimension
@@ -130,7 +129,7 @@ void main()
 			// Reading from file
 			{
 				auto file = H5File(filename, H5File.Access.ReadOnly);
-				auto dataset = Dataset!(DataType, DataSpecType).open(file, datasetName);
+				auto dataset = Dataset!(DataType).open(file, datasetName);
 
 				DataType foor;
 				foor = dataset.read();
