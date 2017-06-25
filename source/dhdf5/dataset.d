@@ -74,14 +74,12 @@ private
 	}
 }
 
-struct Dataset(Data)
+struct Dataset(Data, DataSpecType)
 {
 	static assert (isDynamicArray!Data, Data.stringof ~ " should be dynamic array type");
 
 	private
 	{
-		alias DataSpecType = typeof(DataSpecification!Data.make());
-
 		this(hid_t dataset, DataSpecType data_spec)
 		{
 			_dataset = dataset;
@@ -118,18 +116,18 @@ struct Dataset(Data)
 		H5Pset_chunk(dcpl_id, castFrom!size_t.to!int(chunk_dims.length), chunk_dims.ptr);
 
 		auto space = H5Screate_simple(castFrom!(size_t).to!int(curr_dim.length), curr_dim.ptr, max_dim.ptr);
-		auto data_spec = DataSpecification!Data.make();
+		auto data_spec = DataSpecType.make();
 		auto dataset = H5Dcreate2(file.tid, name.toStringz, data_spec.tid, space, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
 		assert(dataset >= 0);
-		return Dataset!Data(dataset, data_spec);
+		return Dataset!(Data, DataSpecType)(dataset, data_spec);
 	}
 
 	static open(ref const(H5File) file, string name)
 	{
-		auto data_spec = DataSpecification!Data.make();
+		auto data_spec = DataSpecType.make();
 		auto dataset = H5Dopen2(file.tid, name.toStringz, H5P_DEFAULT);
 		assert(dataset >= 0);
-		return Dataset!Data(dataset, data_spec);
+		return Dataset!(Data, DataSpecType)(dataset, data_spec);
 	}
 
 	/**

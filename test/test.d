@@ -60,18 +60,19 @@ void main()
 		foreach(el; foo)
 		{
 			alias DataType = typeof(el);
+			alias DataSpecType = typeof(DataSpecification!DataType.make());
 
 			// Writing to file
 			{
 				auto file  = H5File(filename, H5File.Access.Trunc);
-				auto dataset = Dataset!(DataType).create(file, datasetName);
+				auto dataset = Dataset!(DataType, DataSpecType).create(file, datasetName);
 				dataset.write(el);
 			}
 
 			// Reading from file
 			{
 				auto file = H5File(filename, H5File.Access.ReadOnly);
-				auto dataset = Dataset!(DataType).open(file, datasetName);
+				auto dataset = Dataset!(DataType, DataSpecType).open(file, datasetName);
 
 				DataType foor;
 				foor = dataset.read();
@@ -109,11 +110,12 @@ void main()
 		foreach(el; foo)
 		{
 			alias DataType = typeof(el);
+			alias DataSpecType = typeof(DataSpecification!DataType.make());
 
 			// Writing to file
 			{
 				auto file  = H5File(filename, H5File.Access.Trunc);
-				auto dataset = Dataset!(DataType).create(file, datasetName);
+				auto dataset = Dataset!(DataType, DataSpecType).create(file, datasetName);
 				dataset.write(el);
 
 				assert(dataset.rank   == 1); // every el instance has the only dimension
@@ -128,7 +130,7 @@ void main()
 			// Reading from file
 			{
 				auto file = H5File(filename, H5File.Access.ReadOnly);
-				auto dataset = Dataset!(DataType).open(file, datasetName);
+				auto dataset = Dataset!(DataType, DataSpecType).open(file, datasetName);
 
 				DataType foor;
 				foor = dataset.read();
@@ -150,18 +152,23 @@ void main()
 			}
 		}
 
-		auto file  = H5File("1" ~ filename, H5File.Access.Trunc);
-		auto data = foo[0][];
+		{
+			auto file  = H5File("1" ~ filename, H5File.Access.Trunc);
+			auto data = foo[0][];
 
-		auto dataset = Dataset!(typeof(data)).create(file, datasetName);
+			alias DataType = typeof(data);
+			alias DataSpecType = typeof(DataSpecification!DataType.make());
 
-		dataset.setShape([4]);
-		dataset.write(data[0..2], [0]);
-		dataset.write(data[2..3], [2]);
-		dataset.write(data[3..4], [3]);
-		dataset.setShape([5]);
-		dataset.write(data[1..2], [4]);
-		dataset.setShape([6]);
-		dataset.write(data[2..3], [5]);
+			auto dataset = Dataset!(DataType, DataSpecType).create(file, datasetName);
+
+			dataset.setShape([4]);
+			dataset.write(data[0..2], [0]);
+			dataset.write(data[2..3], [2]);
+			dataset.write(data[3..4], [3]);
+			dataset.setShape([5]);
+			dataset.write(data[1..2], [4]);
+			dataset.setShape([6]);
+			dataset.write(data[2..3], [5]);
+		}
 	}
 }
