@@ -76,6 +76,8 @@ private
 
 struct Dataset(Data)
 {
+	static assert (isDynamicArray!Data, Data.stringof ~ " should be dynamic array type");
+
 	private
 	{
 		alias DataSpecType = typeof(DataSpecification!Data.make());
@@ -97,39 +99,23 @@ struct Dataset(Data)
 		}
 	}
 
-	enum DEFAULT_CHUNK_SIZE = 512;
-
 	static create(ref const(H5File) file, string name)
 	{
+		enum DEFAULT_CHUNK_SIZE = 512;
 		auto dcpl_id = H5P_DEFAULT;
 
-		static if(isStaticArray!Data)
-		{
-			auto curr_dim = countDimensions!(Data);
-			auto max_dim = curr_dim;
-		}
-		else
-		static if(isDynamicArray!Data)
-		{
-			/* Create a dataset creation property list and set it to use chunking
-			 */
-			auto max_dim = countDimensions!(Data)();
-			auto curr_dim = max_dim.dup;
-			curr_dim[] = 0;
-			hsize_t[] chunk_dims;
-			chunk_dims.length = curr_dim.length;
-			chunk_dims[] = DEFAULT_CHUNK_SIZE;
-			dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
-			scope(exit) H5Pclose(dcpl_id);
+		/* Create a dataset creation property list and set it to use chunking
+		 */
+		auto max_dim = countDimensions!(Data)();
+		auto curr_dim = max_dim.dup;
+		curr_dim[] = 0;
+		hsize_t[] chunk_dims;
+		chunk_dims.length = curr_dim.length;
+		chunk_dims[] = DEFAULT_CHUNK_SIZE;
+		dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
+		scope(exit) H5Pclose(dcpl_id);
 
-			H5Pset_chunk(dcpl_id, castFrom!size_t.to!int(chunk_dims.length), chunk_dims.ptr);
-		}
-		else
-		{
-			enum LENGTH = 1;
-			hsize_t[1] curr_dim = [ LENGTH ];
-			auto max_dim = curr_dim;
-		}
+		H5Pset_chunk(dcpl_id, castFrom!size_t.to!int(chunk_dims.length), chunk_dims.ptr);
 
 		auto space = H5Screate_simple(castFrom!(size_t).to!int(curr_dim.length), curr_dim.ptr, max_dim.ptr);
 		auto data_spec = DataSpecification!Data.make();
@@ -207,17 +193,9 @@ struct Dataset(Data)
 		assert(status >=0);
 
 		Data data;
-		static if(isDynamicArray!Data)
-		{
-			setDynArrayDimensions(data, [count]);
-			auto data_out = data.ptr;
-		}
-		else
-		{
-			auto data_out = &data;
-		}
+		setDynArrayDimensions(data, [count]);
 
-		status = H5Dread(_dataset, _data_spec.tid, memspace, dataspace, H5P_DEFAULT, data_out);
+		status = H5Dread(_dataset, _data_spec.tid, memspace, dataspace, H5P_DEFAULT, data.ptr);
 		assert(status >= 0);
 		return data;
 	}
@@ -238,32 +216,23 @@ struct Dataset(Data)
 		offset[] = 0;
 		herr_t status;
 
-		static if(isDynamicArray!Data)
-		{
-			/*
-			 * Extend the dataset.
-			 */
-			auto size = countDimensions(data);
-			status = H5Dset_extent (_dataset, size.ptr);
-			assert(status >= 0);
-			auto data_in = data.ptr;
-		}
-		else
-		{
-			auto data_in = &data;
-		}
+		/*
+		 * Extend the dataset.
+		 */
+		auto size = countDimensions(data);
+		status = H5Dset_extent (_dataset, size.ptr);
+		assert(status >= 0);
 
 		status = H5Sselect_hyperslab(filespace, H5S_seloper_t.H5S_SELECT_SET, offset.ptr, null,
 					 currShape().ptr, null);
 		assert(status >= 0);
-		status = H5Dwrite(_dataset, _data_spec.tid, H5S_ALL, H5S_ALL, H5P_DEFAULT, data_in);
+		status = H5Dwrite(_dataset, _data_spec.tid, H5S_ALL, H5S_ALL, H5P_DEFAULT, data.ptr);
 		assert(status >= 0);
 	}
 
 	/*
 	 * Wtite data to the dataset;
 	 */
-	static if (isArray!Data)
 	auto write(Data data, hsize_t[] offset)
 	{
 		assert(offset.length == _rank);
@@ -302,15 +271,7 @@ struct Dataset(Data)
 		offset[] = 0;
 		herr_t status;
 
-		static if(isDynamicArray!Data)
-		{
-			setDynArrayDimensions(data, currShape());
-			auto data_out = data.ptr;
-		}
-		else
-		{
-			auto data_out = &data;
-		}
+		setDynArrayDimensions(data, currShape());
 		/*
 		 * Define the memory space to read dataset.
 		 */
@@ -321,7 +282,7 @@ struct Dataset(Data)
 		 * Read dataset
 		 */
 		status = H5Dread(_dataset, _data_spec.tid, memspace, filespace,
-				 H5P_DEFAULT, data_out);
+				 H5P_DEFAULT, data.ptr);
 		assert(status >= 0);
 
 		return data;
