@@ -3,6 +3,7 @@ module dhdf5.dataset;
 private
 {
 	import std.traits : isDynamicArray;
+	import std.range : isInputRange;
 	import dhdf5.dataspec : DataSpecification;
 
 	/// array is dynamic array whose dimensions sizes are set using dim array elements
@@ -48,6 +49,60 @@ private
 		assert(res2.length == 1);
 	}
 
+	template rankOf(R)
+		if (isInputRange!R)
+	{
+		auto rankOfImpl(Range)()
+		{
+			import std.range : ElementType;
+
+			static if (isInputRange!Range)
+			{
+				return 1 + rankOfImpl!(ElementType!Range);
+			}
+			else
+				return 0;
+		}
+
+		enum rankOf = rankOfImpl!R;
+	}
+
+	unittest
+	{
+		{
+			enum rank = rankOf!(uint[]);
+			static assert (rank == 1);
+		}
+
+		{
+			enum rank = rankOf!(uint[][][][][][]);
+			static assert (rank == 6);
+		}
+
+		{
+			import std.range : only;
+
+			auto range = only(1, 2);
+			alias Range = typeof(range);
+
+			enum rank = rankOf!Range;
+			static assert (rank == 1);
+		}
+
+		{
+			import std.range : only;
+
+			auto range = only(1, 2);
+			alias Range = typeof(range);
+
+			auto ror = only(range, range);
+			alias RoR = typeof(ror);
+
+			enum rank = rankOf!RoR;
+			static assert (rank == 2);
+		}
+	}
+
 	struct Dataspace
 	{
 		import hdf5.hdf5 : hid_t, H5Dget_space, H5Sclose;
@@ -78,19 +133,22 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 
 	static assert (isDynamicArray!Data, Data.stringof ~ " should be dynamic array type");
 
+	enum rank = rankOf!Data;
+
 	private
 	{
 		this(hid_t dataset, DataSpecType data_spec)
 		{
-			import hdf5.hdf5 : H5Sget_simple_extent_ndims;
-
 			_dataset = dataset;
 			_data_spec = data_spec;
 
-			auto space_id = Dataspace (_dataset);
-			_rank = H5Sget_simple_extent_ndims (space_id);
-			_curr_shape.length = _rank;
-			_max_shape.length = _rank;
+			debug
+			{
+				import hdf5.hdf5 : H5Sget_simple_extent_ndims;
+
+				auto space_id = Dataspace (_dataset);
+				assert (rank == H5Sget_simple_extent_ndims (space_id));
+			}
 		}
 
 		~this()
@@ -144,14 +202,6 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 	}
 
 	/**
-	 * Return rank of the dataset
-	 */
-	auto rank() const
-	{
-		return _rank;
-	}
-
-	/**
 	 * Return current shape, that can change during programm running.
 	 */
 	auto currShape() const
@@ -201,7 +251,7 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 		/*
 		 * Define the memory space to read dataset.
 		 */
-		auto memspace = H5Screate_simple(_rank, currShape().ptr, null);
+		auto memspace = H5Screate_simple(rank, currShape().ptr, null);
 		scope(exit) H5Sclose(memspace);
 
 		/*
@@ -296,9 +346,9 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 		import hdf5.hdf5 : herr_t, H5Sselect_hyperslab, H5Screate_simple, H5Dwrite,
 			H5S_seloper_t, H5P_DEFAULT, H5Sclose;
 
-		assert(offset.length == _rank);
+		assert(offset.length == rank);
 		hsize_t[] count = [data.length];
-		assert(  count.length == _rank);
+		assert(  count.length == rank);
 		herr_t status;
 
 		auto filespace = Dataspace (_dataset);
@@ -451,11 +501,10 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 private:
 	hid_t _dataset;
 	DataSpecType _data_spec;
-	immutable int _rank;
 	// Current shape of dataset
-	hsize_t[] _curr_shape;
+	hsize_t[rank] _curr_shape;
 	// Maximal shape of dataset
-	hsize_t[] _max_shape;
+	hsize_t[rank] _max_shape;
 }
 
 unittest
