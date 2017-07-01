@@ -160,13 +160,13 @@ void main()
 
 			auto dataset = Dataset!(DataType, DataSpecType).create(file, datasetName);
 
-			dataset.setShape([4]);
+			dataset.currShape([4]);
 			dataset.write(data[0..2], [0]);
 			dataset.write(data[2..3], [2]);
 			dataset.write(data[3..4], [3]);
-			dataset.setShape([5]);
+			dataset.currShape([5]);
 			dataset.write(data[1..2], [4]);
-			dataset.setShape([6]);
+			dataset.currShape([6]);
 			dataset.write(data[2..3], [5]);
 
 			import std.stdio;

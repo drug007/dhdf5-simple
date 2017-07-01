@@ -158,6 +158,8 @@ struct DataSpecification(Data)
 		// Создаем атрибуты
 		hid_t createStruct(D)(ref DataAttribute[] attributes) if(is(D == struct))
 		{
+			import std.traits : OriginalType;
+
 			alias TT = FieldTypeTuple!D;
 
 			auto tid = H5Tcreate (H5T_class_t.H5T_COMPOUND, D.sizeof);
