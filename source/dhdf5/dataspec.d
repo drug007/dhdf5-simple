@@ -1,15 +1,13 @@
 module dhdf5.dataspec;
 
-import std.range;
-import std.traits;
-import std.typetuple;
-import std.typecons;
+import std.traits : isStaticArray, isDynamicArray;
 import std.string: toStringz;
-
-import hdf5.hdf5;
 
 private
 {
+	import std.typetuple : TypeTuple, staticIndexOf;
+	import std.traits : Unqual;
+
 	// bool is special type and is processed like enum
 	alias AllowedTypes = TypeTuple!(float, int, double, char, uint, long, ulong, short, ubyte, ushort);
 	enum string[] VectorHdf5Types =
@@ -66,6 +64,8 @@ auto countDimensions(T)() if(isStaticArray!T)
 
 auto countDimensions(T)() if(isDynamicArray!T)
 {
+	import hdf5.hdf5 : H5S_UNLIMITED;
+
 	size_t[] dim;
 
 	auto countDimensionsImpl(R)()
@@ -114,6 +114,8 @@ struct HDF5disable
 
 struct DataAttribute
 {
+	import hdf5.hdf5 : hid_t;
+
 	hid_t type;
 	size_t offset;
 	string varName;
@@ -121,6 +123,12 @@ struct DataAttribute
 
 struct DataSpecification(Data)
 {
+	import std.traits : isArray, isScalarType, ForeachType, FieldTypeTuple,
+		FieldNameTuple;
+	import std.range : ElementType;
+	import std.typecons : RefCounted;
+	import hdf5.hdf5;
+
 	alias DataType = Data;
 
 	private static makeImpl(S)() if(is(S == struct))
@@ -267,6 +275,8 @@ struct DataSpecification(Data)
 		// Insert attributes of the structure into the datatype
 		auto insertAttributes(hid_t hdf5Type, DataAttribute[] da)
 		{
+			import hdf5.hdf5 : H5Tinsert;
+
 			foreach(attr; da)
 			{
 				auto status = H5Tinsert(hdf5Type, attr.varName.toStringz, attr.offset, attr.type);
