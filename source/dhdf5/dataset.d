@@ -125,13 +125,13 @@ private
 }
 
 struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
+	if (isInputRange!Data)
 {
 	import std.range : ElementType, hasLength;
-	import std.traits : isDynamicArray;
 	import hdf5.hdf5 : hid_t, hsize_t, H5Sget_simple_extent_ndims, H5Dclose;
 	import dhdf5.file : H5File;
 
-	static assert (isDynamicArray!Data, Data.stringof ~ " should be dynamic array type");
+	static assert (isInputRange!Data, Data.stringof ~ " should be input range");
 
 	enum rank = rankOf!Data;
 
@@ -238,7 +238,7 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 	{
 		import hdf5.hdf5;
 
-		Data data;
+		ElementType!Data[] data;
 		auto filespace = Dataspace(_dataset);
 
 		// get current size
@@ -296,7 +296,7 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 		status = H5Sselect_hyperslab (memspace, H5S_seloper_t.H5S_SELECT_SET, mem_offset.ptr, null, mem_count.ptr, null);
 		assert(status >=0);
 
-		Data data;
+		ElementType!Data[] data;
 		setDynArrayDimensions (data, count);
 
 		status = H5Dread (_dataset, _data_spec.tid, memspace, dataspace, H5P_DEFAULT, data.ptr);
@@ -307,7 +307,7 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 	/*
 	 * Write data to the dataset;
 	 */
-	auto write(Data data)
+	auto write(ElementType!Data[] data)
 	{
 		import hdf5.hdf5 : herr_t, H5Dset_extent, H5Sselect_hyperslab,
 			H5Dwrite, H5S_seloper_t, H5S_ALL, H5P_DEFAULT;
@@ -341,7 +341,7 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 	/*
 	 * Write data to the dataset;
 	 */
-	auto write(Data data, hsize_t[] offset)
+	auto write(ElementType!Data[] data, hsize_t[] offset)
 	{
 		import hdf5.hdf5 : herr_t, H5Sselect_hyperslab, H5Screate_simple, H5Dwrite,
 			H5S_seloper_t, H5P_DEFAULT, H5Sclose;

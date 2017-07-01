@@ -11,6 +11,7 @@ auto test2()
 	}
 
 	import std.algorithm : equal, copy;
+	import std.range : only;
 	import dhdf5.file : H5File, H5open, H5close;
 	import hdf5.hdf5 : H5S_UNLIMITED;
 
@@ -19,7 +20,10 @@ auto test2()
 
 	auto file = H5File("testfile.h5", H5File.Access.Trunc);
 
-	auto ds = Dataset!(Foo[]).create(file, "dataset");
+	auto range = only(Foo(100, "init"), Foo(200, "range"));
+	alias Range = typeof(range);
+
+	auto ds = Dataset!Range.create(file, "dataset");
 	assert (ds.currShape == [0]);
 	assert (ds.maxShape == [H5S_UNLIMITED]);
 

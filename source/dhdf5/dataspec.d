@@ -7,6 +7,7 @@ private
 {
 	import std.typetuple : TypeTuple, staticIndexOf;
 	import std.traits : Unqual;
+	import std.range : isInputRange;
 
 	// bool is special type and is processed like enum
 	alias AllowedTypes = TypeTuple!(float, int, double, char, uint, long, ulong, short, ubyte, ushort);
@@ -62,7 +63,7 @@ auto countDimensions(T)() if(isStaticArray!T)
 	return countDimensionsImpl!T;
 }
 
-auto countDimensions(T)() if(isDynamicArray!T)
+auto countDimensions(T)() if(isInputRange!T)
 {
 	import hdf5.hdf5 : H5S_UNLIMITED;
 
@@ -321,8 +322,9 @@ struct DataSpecification(Data)
 
 	static make()
 	{
-		static if(isArray!Data) // if "outer" type of data is array it's processed on Dataset level,
-								// so skip it
+		import std.range : isInputRange;
+		static if(isInputRange!Data) // if "outer" type of data is an input range it's processed,
+		                             // on Dataset level so skip it
 		{
 			return makeImpl!(ForeachType!Data);
 		}
