@@ -1,3 +1,5 @@
+module test1;
+
 import std.range;
 import std.traits;
 
@@ -41,7 +43,7 @@ struct Foo
 	}
 }
 
-void main()
+void test1()
 {
 	string datasetName = "dataset";
 
