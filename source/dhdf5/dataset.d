@@ -7,9 +7,9 @@ private
 
 	/// array is dynamic array whose dimensions sizes are set using dim array elements
 	/// as sizes.
-	auto setDynArrayDimensions(T)(ref T arr, size_t[] dim) if(isDynamicArray!T)
+	auto setDynArrayDimensions(T)(ref T arr, const size_t[] dim) if(isDynamicArray!T)
 	{
-		auto setDimImpl(T)(ref T t, size_t[] dim)
+		auto setDimImpl(T)(ref T t, const size_t[] dim)
 		{
 			static if(isDynamicArray!T)
 			{
@@ -71,6 +71,7 @@ private
 
 struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 {
+	import std.range : ElementType, hasLength;
 	import std.traits : isDynamicArray;
 	import hdf5.hdf5 : hid_t, hsize_t, H5Sget_simple_extent_ndims, H5Dclose;
 	import dhdf5.file : H5File;
@@ -145,7 +146,7 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 	/**
 	 * Return rank of the dataset
 	 */
-	auto rank()
+	auto rank() const
 	{
 		return _rank;
 	}
@@ -153,7 +154,7 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 	/**
 	 * Return current shape, that can change during programm running.
 	 */
-	auto currShape()
+	auto currShape() const
 	{
 		import hdf5.hdf5 : H5Sget_simple_extent_dims;
 
@@ -162,6 +163,14 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 		H5Sget_simple_extent_dims (space_id, _curr_shape.ptr, _max_shape.ptr);
 
 		return _curr_shape;
+	}
+
+	auto currShape(hsize_t[] extent)
+	{
+		import hdf5.hdf5;
+
+		auto status = H5Dset_extent (_dataset, extent.ptr);
+		assert(status >= 0);
 	}
 
 	/**
@@ -175,7 +184,7 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 	/*
 	 * Read data from the dataset.
 	 */
-	auto read()
+	auto read() const
 	{
 		import hdf5.hdf5;
 
@@ -208,7 +217,7 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 	/**
 	 * Read count data from file starting with offset
 	 */
-	auto read(hsize_t[] offset, hsize_t[] count)
+	auto read(hsize_t[] offset, hsize_t[] count) const
 	{
 		import hdf5.hdf5 : H5Sselect_hyperslab, H5Screate_simple, H5Dread, H5Sclose,
 			H5S_seloper_t, H5P_DEFAULT;
@@ -303,45 +312,140 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 		assert(status >= 0);
 	}
 
-	auto setShape(hsize_t[] extent)
+	auto remove(hsize_t idx)
 	{
-		import hdf5.hdf5;
-
-		auto status = H5Dset_extent (_dataset, extent.ptr);
-		assert(status >= 0);
+		auto l = currShape[0];
+		if (idx != l-1)
+		{
+			auto buffer = read([idx+1], [currShape[0]-idx-1]);
+			write(buffer, [idx]);
+		}
+		currShape = [l - 1];
 	}
 
-	/*
-	 * Read data from the dataset.
-	 */
-	auto read()
+	auto remove(IndexRange)(IndexRange index_range)
 	{
-		import hdf5.hdf5;
 
-		Data data;
-		auto filespace = Dataspace(_dataset);
+	}
 
-		// get current size
-		auto offset = currShape().dup;
-		// set offset to zero for all dimensions
-		offset[] = 0;
-		herr_t status;
+	Range opSlice()
+	{
+		return Range(this, 0, currShape[0]);
+	}
 
-		setDynArrayDimensions(data, currShape());
-		/*
-		 * Define the memory space to read dataset.
-		 */
-		auto memspace = H5Screate_simple(_rank, currShape().ptr, null);
-		scope(exit) H5Sclose(memspace);
+	auto add(ElementType!Data element)
+	{
+		// set new shape
+		auto last_index = currShape[0];
+		currShape = [last_index+1];
+		write([element], [last_index]);
+	}
 
-		/*
-		 * Read dataset
-		 */
-		status = H5Dread(_dataset, _data_spec.tid, memspace, filespace,
-				 H5P_DEFAULT, data.ptr);
-		assert(status >= 0);
+	auto add(Range)(Range range)
+		if (is(ElementType!Range : ElementType!Data) && hasLength!Range)
+	{
+		// set new shape
+		auto last_index = currShape[0];
+		currShape = [last_index+range.length];
+		write(range, [last_index]);
+	}
 
-		return data;
+	struct Range
+	{
+		// index of starting element + element count of the range
+		private
+		{
+			size_t _start, _length;
+			Dataset* _dataset;
+		}
+
+		@disable
+		this();
+
+		this(ref Dataset dataset, size_t start, size_t length)
+		{
+			_dataset = &dataset;
+			_start = start;
+			_length = length;
+		}
+
+		bool empty() const
+		{
+			return _length == 0;
+		}
+
+		ref ElementType!Data front() const
+		{
+			return (*_dataset)[_start];
+		}
+
+		ref ElementType!Data back() const
+		{
+			return (*_dataset)[_start+_length-1];
+		}
+
+		void popFront()
+		{
+			import std.exception : enforce;
+
+			enforce (!empty);
+
+			_start++;
+			_length--;
+		}
+
+		void popBack()
+		{
+			import std.exception : enforce;
+
+			enforce (!empty);
+
+			_length--;
+		}
+
+		auto save() const
+		{
+			return this;
+		}
+
+		ref auto opIndex(size_t index) const
+		{
+			return (*_dataset)[index];
+		}
+
+		size_t length() const
+		{
+			return _length;
+		}
+	}
+
+	ref ElementType!Data opIndex(size_t index) const
+	{
+		if (index >= currShape[0])
+			throw new Exception("Bounds");
+
+		return read([index], [1])[0];
+	}
+
+	auto opIndexAssign(ElementType!Data element, size_t index)
+	{
+		write([element], [index]);
+	}
+
+	auto opOpAssign(string op)(ElementType!Data rhs)
+	{
+		static if (op == "~")
+		{
+			add(rhs);
+		}
+	}
+
+	auto opOpAssign(string op, Range)(Range r)
+	{
+		static if (op == "~")
+		{
+			add(r);
+		}
 	}
 
 private:
@@ -352,4 +456,63 @@ private:
 	hsize_t[] _curr_shape;
 	// Maximal shape of dataset
 	hsize_t[] _max_shape;
+}
+
+unittest
+{
+	struct Foo
+	{
+		uint ui;
+		string s;
+	}
+
+	import std.algorithm : equal, copy;
+	import dhdf5.file : H5File, H5open, H5close;
+	import hdf5.hdf5 : H5S_UNLIMITED;
+
+	H5open();
+	scope(exit) H5close();
+
+	auto file = H5File("testfile.h5", H5File.Access.Trunc);
+
+	auto ds = Dataset!(Foo[]).create(file, "dataset");
+	assert (ds.currShape == [0]);
+	assert (ds.maxShape == [H5S_UNLIMITED]);
+
+	// adding by elements
+	auto foo = Foo(1, "Hello");
+	ds.add(foo);
+	foo = Foo(2, "World");
+	ds.add(foo);
+	assert (ds.currShape == [2]);
+	assert (ds[].equal([Foo(1, "Hello"), Foo(2, "World")]));
+
+	// removing the last element by index
+	ds.remove(1);
+	assert (ds.currShape[0] == 1);
+
+	// setting shape
+	ds.currShape = [3];
+	assert (ds[].equal([Foo(1, "Hello"), Foo.init, Foo.init]));
+
+	// access by index
+	assert (ds[2] == Foo.init);
+	// modifying by index
+	ds[1] = Foo(4, "Welt");
+	ds[2] = Foo(5, "Monde");
+	assert (ds[].equal([Foo(1, "Hello"), Foo(4, "Welt"), Foo(5, "Monde")]));
+
+	// removing the first element by index
+	ds.remove(0);
+	assert (ds.currShape[0] == 2);
+
+	assert (ds[].equal([Foo(4, "Welt"), Foo(5, "Monde")]));
+
+	ds ~= [Foo(6, "Мир"), Foo(7, "世界")];
+	assert (ds.currShape[0] == 4);
+	assert (ds[].equal([Foo(4, "Welt"), Foo(5, "Monde"), Foo(6, "Мир"), Foo(7, "世界")]));
+
+	//import std.stdio;
+	//writeln(ds.maxShape);
+	//writeln(H5S_UNLIMITED);
 }
