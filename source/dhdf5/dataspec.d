@@ -72,7 +72,7 @@ auto countDimensions(T)() if(isDynamicArray!T)
 	{
 		R r;
 
-		dim ~= H5F_UNLIMITED;
+		dim ~= H5S_UNLIMITED;
 		static if(isDynamicArray!(typeof(r[0])))
 		{
 			return countDimensionsImpl!(typeof(r[0]))(r[0]);
