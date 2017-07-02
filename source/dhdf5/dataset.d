@@ -305,49 +305,28 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 	}
 
 	/*
-	 * Write data to the dataset;
+	 * Write data to the dataset
 	 */
 	auto write(ElementType!Data[] data)
 	{
-		import hdf5.hdf5 : herr_t, H5Dset_extent, H5Sselect_hyperslab,
-			H5Dwrite, H5S_seloper_t, H5S_ALL, H5P_DEFAULT;
-
-		/*
-		 * Make a copy of dataspace of the dataset.
-		 */
-		auto filespace = Dataspace (_dataset);
-
-		// get copy of the current shape
-		auto offset = currShape().dup;
-		// set offset to zero for all dimensions
+		hsize_t[rank] offset;
 		offset[] = 0;
-		herr_t status;
-
-		/*
-		 * Extend the dataset.
-		 */
-		import dhdf5.dataspec : countDimensions;
-		auto size = countDimensions(data);
-		status = H5Dset_extent (_dataset, size.ptr);
-		assert(status >= 0);
-
-		status = H5Sselect_hyperslab (filespace, H5S_seloper_t.H5S_SELECT_SET, offset.ptr, null,
-					 currShape().ptr, null);
-		assert(status >= 0);
-		status = H5Dwrite (_dataset, _data_spec.tid, H5S_ALL, H5S_ALL, H5P_DEFAULT, data.ptr);
-		assert(status >= 0);
+		write(data, offset[]);
 	}
 
 	/*
 	 * Write data to the dataset;
 	 */
-	auto write(ElementType!Data[] data, hsize_t[] offset)
+	auto write(ElementType!Data[] data, const(hsize_t)[] offset)
 	{
+		import std.exception : enforce;
+		enforce (data.length+offset[0] <= currShape[0], "Bounds checking failed!");
+
 		import hdf5.hdf5 : herr_t, H5Sselect_hyperslab, H5Screate_simple, H5Dwrite,
 			H5S_seloper_t, H5P_DEFAULT, H5Sclose;
 
 		assert(offset.length == rank);
-		hsize_t[] count = [data.length];
+		hsize_t[rank] count = [data.length];
 		assert(  count.length == rank);
 		herr_t status;
 

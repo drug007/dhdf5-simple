@@ -68,6 +68,7 @@ void test1()
 			{
 				auto file  = H5File(filename, H5File.Access.Trunc);
 				auto dataset = Dataset!(DataType, DataSpecType).create(file, datasetName);
+				dataset.currShape([el.length]);
 				dataset.write(el);
 			}
 
@@ -117,6 +118,7 @@ void test1()
 			{
 				auto file  = H5File(filename, H5File.Access.Trunc);
 				auto dataset = Dataset!(DataType).create(file, datasetName);
+				dataset.currShape([el.length]);
 				dataset.write(el);
 
 				assert(dataset.rank   == 1); // every el instance has the only dimension
