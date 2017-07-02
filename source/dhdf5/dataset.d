@@ -128,6 +128,7 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 	if (isInputRange!Data)
 {
 	import std.range : ElementType, hasLength;
+	import std.traits : isImplicitlyConvertible;
 	import hdf5.hdf5 : hid_t, hsize_t, H5Sget_simple_extent_ndims, H5Dclose;
 	import dhdf5.file : H5File;
 
@@ -302,6 +303,17 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 		status = H5Dread (_dataset, _data_spec.tid, memspace, dataspace, H5P_DEFAULT, data.ptr);
 		assert(status >= 0);
 		return data;
+	}
+
+	void write(Range, Args...)(Range range, Args args)
+		if (isImplicitlyConvertible!(ElementType!Range, ElementType!Data) &&
+			!is(Range == ElementType!(Data)[]))
+	{
+		import std.container : Array;
+
+		auto buffer = Array!(ElementType!Data)(range);
+
+		write((&buffer[0])[0..buffer.length], args);
 	}
 
 	/*

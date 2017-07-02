@@ -20,7 +20,7 @@ auto test2()
 
 	auto file = H5File("testfile.h5", H5File.Access.Trunc);
 
-	auto range = only(Foo(100, "init"), Foo(200, "range"));
+	auto range = only(Foo(100, "Mondo"), Foo(200, "Mundo"));
 	alias Range = typeof(range);
 
 	auto ds = Dataset!Range.create(file, "dataset");
@@ -59,4 +59,8 @@ auto test2()
 	ds ~= [Foo(6, "Мир"), Foo(7, "世界")];
 	assert (ds.currShape[0] == 4);
 	assert (ds[].equal([Foo(4, "Welt"), Foo(5, "Monde"), Foo(6, "Мир"), Foo(7, "世界")]));
+
+	ds ~= range;
+	assert (ds.currShape[0] == 6);
+	assert (ds[].equal([Foo(4, "Welt"), Foo(5, "Monde"), Foo(6, "Мир"), Foo(7, "世界"), Foo(100, "Mondo"), Foo(200, "Mundo")]));
 }
