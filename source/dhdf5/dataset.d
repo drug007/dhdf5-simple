@@ -107,7 +107,7 @@ private
 	{
 		import hdf5.hdf5 : hid_t, H5Dget_space, H5Sclose;
 
-		hid_t hid;
+		hid_t hid = -1;
 
 		this(hid_t dataset)
 		{
@@ -117,7 +117,11 @@ private
 
 		~this()
 		{
-			H5Sclose (hid);
+			if (hid != -1)
+			{
+				H5Sclose (hid);
+				hid = -1;
+			}
 		}
 
 		alias hid this;
@@ -129,17 +133,21 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 {
 	import std.range : ElementType, hasLength;
 	import std.traits : isImplicitlyConvertible;
+	import std.typecons : RefCounted;
 	import hdf5.hdf5 : hid_t, hsize_t, H5Sget_simple_extent_ndims, H5Dclose;
 	import dhdf5.file : H5File;
 
 	static assert (isInputRange!Data, Data.stringof ~ " should be input range");
 
 	enum rank = rankOf!Data;
+	alias Type = RefCounted!(Dataset!(Data, DataSpecType));
 
-	private
+	public
 	{
 		this(hid_t dataset, DataSpecType data_spec)
 		{
+			import std.exception : enforce;
+			enforce (dataset != -1);
 			_dataset = dataset;
 			_data_spec = data_spec;
 
@@ -156,7 +164,11 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 		{
 			import hdf5.hdf5 : H5Dclose;
 
-			H5Dclose(_dataset);
+			if (_dataset != -1)
+			{
+				H5Dclose(_dataset);
+				_dataset = -1;
+			}
 		}
 	}
 
@@ -188,7 +200,7 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 		auto data_spec = DataSpecType.make();
 		auto dataset = H5Dcreate2 (file.tid, name.toStringz, data_spec.tid, space, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
 		assert(dataset >= 0);
-		return Dataset!(Data, DataSpecType)(dataset, data_spec);
+		return RefCounted!(Dataset!(Data, DataSpecType))(dataset, data_spec);
 	}
 
 	static open(ref const(H5File) file, string name)
@@ -199,7 +211,7 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 		auto data_spec = DataSpecType.make();
 		auto dataset = H5Dopen2 (file.tid, name.toStringz, H5P_DEFAULT);
 		assert(dataset >= 0);
-		return Dataset!(Data, DataSpecType)(dataset, data_spec);
+		return RefCounted!(Dataset!(Data, DataSpecType))(dataset, data_spec);
 	}
 
 	/**
@@ -208,6 +220,9 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 	auto currShape() const
 	{
 		import hdf5.hdf5 : H5Sget_simple_extent_dims;
+
+		if (_dataset == -1)
+			return typeof(_curr_shape).init;
 
 		auto space_id  = Dataspace (_dataset);
 
@@ -220,6 +235,7 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 	{
 		import hdf5.hdf5;
 
+		assert (_dataset != -1);
 		auto status = H5Dset_extent (_dataset, extent.ptr);
 		assert(status >= 0);
 	}
@@ -489,8 +505,13 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 		}
 	}
 
+	auto tid()
+	{
+		return _dataset;
+	}
+
 private:
-	hid_t _dataset;
+	hid_t _dataset = -1;
 	DataSpecType _data_spec;
 	// Current shape of dataset
 	hsize_t[rank] _curr_shape;

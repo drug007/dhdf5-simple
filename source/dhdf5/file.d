@@ -39,10 +39,11 @@ struct H5File
 
 	~this()
 	{
-		/*
-		 * Release resources
-		 */
-		H5Fclose(_file);
+		if (_file != -1)
+		{
+			H5Fclose(_file);
+			_file = -1;
+		}
 	}
 
 	auto tid() const pure @safe
