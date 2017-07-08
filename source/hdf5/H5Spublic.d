@@ -9,6 +9,8 @@ extern (C):
 //alias H5S_seloper_t H5S_seloper_t;
 alias _Anonymous_0 H5S_sel_type;
 
+enum H5S_UNLIMITED = (cast(hsize_t)(-1L));
+
 enum H5S_ALL = 0;
 
 enum H5S_class_t

@@ -1,109 +1,110 @@
 module dhdf5.dataspec;
 
-import std.range;
-import std.traits;
-import std.typetuple;
-import std.typecons;
+import std.traits : isStaticArray, isDynamicArray;
 import std.string: toStringz;
-
-import hdf5.hdf5;
 
 private
 {
-    // bool is special type and is processed like enum 
-    alias AllowedTypes = TypeTuple!(float, int, double, char, uint, long, ulong, short, ubyte, ushort);
-    enum string[] VectorHdf5Types =
-    [
-        "H5T_NATIVE_FLOAT",
-        "H5T_NATIVE_INT",
-        "H5T_NATIVE_DOUBLE",
-        "H5T_NATIVE_B8",
-        "H5T_NATIVE_B32",
-        "H5T_NATIVE_LONG",
-        "H5T_NATIVE_B64",
-        "H5T_NATIVE_SHORT",
-        "H5T_NATIVE_UCHAR",
-        "H5T_NATIVE_USHORT",
-    ];
+	import std.typetuple : TypeTuple, staticIndexOf;
+	import std.traits : Unqual;
+	import std.range : isInputRange;
 
-    template typeToHdf5Type(T)
-    {
-        alias U = Unqual!T;
-        enum index = staticIndexOf!(U, AllowedTypes);
-        static if (index == -1)
-        {
-            static assert(false, "Could not use " ~ T.stringof ~ ", there is no corresponding hdf5 data type");
-        }
-        else
-        {
-            enum typeToHdf5Type = VectorHdf5Types[index];
-        }
-    }
+	// bool is special type and is processed like enum
+	alias AllowedTypes = TypeTuple!(float, int, double, char, uint, long, ulong, short, ubyte, ushort);
+	enum string[] VectorHdf5Types =
+	[
+		"H5T_NATIVE_FLOAT",
+		"H5T_NATIVE_INT",
+		"H5T_NATIVE_DOUBLE",
+		"H5T_NATIVE_B8",
+		"H5T_NATIVE_B32",
+		"H5T_NATIVE_LONG",
+		"H5T_NATIVE_B64",
+		"H5T_NATIVE_SHORT",
+		"H5T_NATIVE_UCHAR",
+		"H5T_NATIVE_USHORT",
+	];
+
+	template typeToHdf5Type(T)
+	{
+		alias U = Unqual!T;
+		enum index = staticIndexOf!(U, AllowedTypes);
+		static if (index == -1)
+		{
+			static assert(false, "Could not use " ~ T.stringof ~ ", there is no corresponding hdf5 data type");
+		}
+		else
+		{
+			enum typeToHdf5Type = VectorHdf5Types[index];
+		}
+	}
 }
 
 auto countDimensions(T)() if(isStaticArray!T)
 {
-    Unqual!T t;
+	Unqual!T t;
 
-    size_t[] dim;
+	size_t[] dim;
 
-    auto countDimensionsImpl(R)()
-    {
-        Unqual!R r;
-        dim ~= R.length;
-        static if(isStaticArray!(typeof(r[0])))
-        {
-            return countDimensionsImpl!(typeof(r[0]));
-        }
-        else
-        {
-            return dim;
-        }
-    }
+	auto countDimensionsImpl(R)()
+	{
+		Unqual!R r;
+		dim ~= R.length;
+		static if(isStaticArray!(typeof(r[0])))
+		{
+			return countDimensionsImpl!(typeof(r[0]));
+		}
+		else
+		{
+			return dim;
+		}
+	}
 
-    return countDimensionsImpl!T;
+	return countDimensionsImpl!T;
 }
 
-auto countDimensions(T)() if(isDynamicArray!T)
+auto countDimensions(T)() if(isInputRange!T)
 {
-    size_t[] dim;
+	import hdf5.hdf5 : H5S_UNLIMITED;
 
-    auto countDimensionsImpl(R)()
-    {
-        R r;
+	size_t[] dim;
 
-        dim ~= H5F_UNLIMITED;
-        static if(isDynamicArray!(typeof(r[0])))
-        {
-            return countDimensionsImpl!(typeof(r[0]))(r[0]);
-        }
-        else
-        {
-            return dim;
-        }
-    }
+	auto countDimensionsImpl(R)()
+	{
+		R r;
 
-    return countDimensionsImpl!T;
+		dim ~= H5S_UNLIMITED;
+		static if(isDynamicArray!(typeof(r[0])))
+		{
+			return countDimensionsImpl!(typeof(r[0]))(r[0]);
+		}
+		else
+		{
+			return dim;
+		}
+	}
+
+	return countDimensionsImpl!T;
 }
 
 auto countDimensions(T)(T t) if(isDynamicArray!T)
 {
-    size_t[] dim;
+	size_t[] dim;
 
-    auto countDimensionsImpl(R)(R r)
-    {
-        dim ~= r.length;
-        static if(isDynamicArray!(typeof(r[0])))
-        {
-            return countDimensionsImpl!(typeof(r[0]))(r[0]);
-        }
-        else
-        {
-            return dim;
-        }
-    }
+	auto countDimensionsImpl(R)(R r)
+	{
+		dim ~= r.length;
+		static if(isDynamicArray!(typeof(r[0])))
+		{
+			return countDimensionsImpl!(typeof(r[0]))(r[0]);
+		}
+		else
+		{
+			return dim;
+		}
+	}
 
-    return countDimensionsImpl(t);
+	return countDimensionsImpl(t);
 }
 
 /// Used as UDA to disable a field of struct of class
@@ -114,237 +115,250 @@ struct HDF5disable
 
 struct DataAttribute
 {
-    hid_t type;
-    size_t offset;
-    string varName;
+	import hdf5.hdf5 : hid_t;
+
+	hid_t type;
+	size_t offset;
+	string varName;
 }
 
 struct DataSpecification(Data)
-{    
-    alias DataType = Data;
+{
+	import std.traits : isArray, isScalarType, ForeachType, FieldTypeTuple,
+		FieldNameTuple;
+	import std.range : ElementType;
+	import std.typecons : RefCounted;
+	import hdf5.hdf5;
 
-    private static makeImpl(S)() if(is(S == struct))
-    {
-        DataAttribute[] attributes;
+	alias DataType = Data;
 
-        template isDisabled(TP...)
-        {
-            auto isDisabledImpl()
-            {
-                bool disabled = false;
-                foreach(t; TP)
-                {
-                    static if(t == "HDF5disabled")
-                    {
-                        disabled = true;
-                        break;
-                    }
-                }
+	private static makeImpl(S)() if(is(S == struct))
+	{
+		DataAttribute[] attributes;
 
-                return disabled;
-            }
+		template isDisabled(TP...)
+		{
+			auto isDisabledImpl()
+			{
+				bool disabled = false;
+				foreach(t; TP)
+				{
+					static if(t == "HDF5disabled")
+					{
+						disabled = true;
+						break;
+					}
+				}
 
-            enum isDisabled = isDisabledImpl();
-        }
+				return disabled;
+			}
 
-        // Создаем атрибуты
-        hid_t createStruct(D)(ref DataAttribute[] attributes) if(is(D == struct))
-        {
-            alias TT = FieldTypeTuple!D;
+			enum isDisabled = isDisabledImpl();
+		}
 
-            auto tid = H5Tcreate (H5T_class_t.H5T_COMPOUND, D.sizeof);
+		// Создаем атрибуты
+		hid_t createStruct(D)(ref DataAttribute[] attributes) if(is(D == struct))
+		{
+			import std.traits : OriginalType;
 
-            foreach (member; FieldNameTuple!D)
-            {
-                enum fullName = "D." ~ member;
-                enum hdf5Name = (Unqual!D).stringof ~ "." ~ member;
+			alias TT = FieldTypeTuple!D;
 
-                mixin("alias T = typeof(" ~ fullName ~ ");");
-                
-                static if (staticIndexOf!(T, TT) != -1)
-                {
-                    mixin("alias A = " ~ fullName ~";");
-                    alias TP = TypeTuple!(__traits(getAttributes, A));
-                    enum disabled = isDisabled!TP; // check if field is disabled using UDA
+			auto tid = H5Tcreate (H5T_class_t.H5T_COMPOUND, D.sizeof);
 
-                    static if(disabled)
-                    {
-                        
-                    }
-                    else
-                    static if(is(T == bool))
-                    {
-                        // TODO Don't know wouldn't it be better if bool enum were created
-                        // once per library in static this()?
+			foreach (member; FieldNameTuple!D)
+			{
+				enum fullName = "D." ~ member;
+				enum hdf5Name = (Unqual!D).stringof ~ "." ~ member;
 
-                        // Create enum type
-                        hid_t hdf5Type = H5Tenum_create (H5T_NATIVE_INT);                       
-                        
-                        auto val = 0;
-                        auto status = H5Tenum_insert (hdf5Type, "false", &val);
-                        assert(status >= 0);
+				mixin("alias T = typeof(" ~ fullName ~ ");");
 
-                        val = 1;
-                        status = H5Tenum_insert (hdf5Type, "true", &val);
-                        assert(status >= 0);
-                    }
-                    else
-                    static if(is(T == enum))
-                    {
-                        static assert(is(T : int), "hdf5 supports only enumeration based on integer type.");
-                        // Create enum type
-                        alias BaseEnumType = OriginalType!T;
-                        mixin("hid_t hdf5Type = H5Tenum_create (" ~ typeToHdf5Type!BaseEnumType ~ ");");
-                        
-                        foreach (size_t cnt, enumMember; __traits(allMembers, T))
-                        {
-                            auto val = cnt;
-                            auto status = H5Tenum_insert (hdf5Type, (T.stringof ~ "." ~ enumMember).toStringz, &val);
-                            assert(status >= 0);
-                        }
-                    }
-                    else static if(isStaticArray!T)
-                    {
-                        alias ElemType = ForeachType!T;
-                        static if(is(ElemType == struct))
-                        {
-                            import std.conv: castFrom;
+				static if (staticIndexOf!(T, TT) != -1)
+				{
+					mixin("alias A = " ~ fullName ~";");
+					alias TP = TypeTuple!(__traits(getAttributes, A));
+					enum disabled = isDisabled!TP; // check if field is disabled using UDA
 
-                            DataAttribute[] da;
-                            auto elemType = createStruct!ElemType(da);
-                            insertAttributes(elemType, da);
-                            //hid_t hdf5Type = H5Tvlen_create (elemType);
-                            alias dim = countDimensions!T;
-                            //mixin("hid_t hdf5Type = H5Tarray_create2 (" ~ typeToHdf5Type!ElemType ~ ", " ~ dim.length.text ~ ", dim.ptr);");
-                            hid_t hdf5Type = H5Tarray_create2 (elemType, castFrom!size_t.to!uint(dim.length), dim.ptr);
-                        }
-                        else
-                        {
-                            import std.conv: text;
+					static if(disabled)
+					{
 
-                            alias dim = countDimensions!T;
-                            mixin("hid_t hdf5Type = H5Tarray_create2 (" ~ typeToHdf5Type!ElemType ~ ", " ~ dim.length.text ~ ", dim.ptr);");
-                        }
-                    }
-                    else static if(isDynamicArray!T)
-                    {
-                        alias ElemType = ElementType!T;
-                        static if(is(ElemType == struct))
-                        {
-                            DataAttribute[] da;
-                            auto elemType = createStruct!ElemType(da);
-                            insertAttributes(elemType, da);
-                            hid_t hdf5Type = H5Tvlen_create (elemType);
-                        }
-                        else
-                            mixin("hid_t hdf5Type = H5Tvlen_create (" ~ typeToHdf5Type!(ForeachType!T) ~ ");");
-                    }
-                    else static if(is(T == struct))
-                    {
-                        DataAttribute[] da;
-                        auto hdf5Type = createStruct!T(da);
+					}
+					else
+					static if(is(T == bool))
+					{
+						// TODO Don't know wouldn't it be better if bool enum were created
+						// once per library in static this()?
 
-                        insertAttributes(hdf5Type, da);
-                    }
-                    else
-                    {
-                        mixin("hid_t hdf5Type = " ~ typeToHdf5Type!T ~ ";");
-                    }
+						// Create enum type
+						hid_t hdf5Type = H5Tenum_create (H5T_NATIVE_INT);
 
-                    static if(!disabled)
-                    {
-                        // Add the attribute
-                        mixin("string varName = \"" ~ hdf5Name ~ "\";");
-                        mixin("enum offset = D." ~ member ~ ".offsetof;");
-                        attributes ~= DataAttribute(hdf5Type, offset, varName);
-                    }
-                }
-            }
+						auto val = 0;
+						auto status = H5Tenum_insert (hdf5Type, "false", &val);
+						assert(status >= 0);
 
-            return tid;
-        }
+						val = 1;
+						status = H5Tenum_insert (hdf5Type, "true", &val);
+						assert(status >= 0);
+					}
+					else
+					static if(is(T == enum))
+					{
+						static assert(is(T : int), "hdf5 supports only enumeration based on integer type.");
+						// Create enum type
+						alias BaseEnumType = OriginalType!T;
+						mixin("hid_t hdf5Type = H5Tenum_create (" ~ typeToHdf5Type!BaseEnumType ~ ");");
 
-        // Insert attributes of the structure into the datatype
-        auto insertAttributes(hid_t hdf5Type, DataAttribute[] da)
-        {
-            foreach(attr; da)
-            {
-                auto status = H5Tinsert(hdf5Type, attr.varName.toStringz, attr.offset, attr.type);
-                assert(status >= 0);
-            }
-        }
+						foreach (size_t cnt, enumMember; __traits(allMembers, T))
+						{
+							auto val = cnt;
+							auto status = H5Tenum_insert (hdf5Type, (T.stringof ~ "." ~ enumMember).toStringz, &val);
+							assert(status >= 0);
+						}
+					}
+					else static if(isStaticArray!T)
+					{
+						alias ElemType = ForeachType!T;
+						static if(is(ElemType == struct))
+						{
+							import std.conv: castFrom;
 
-        auto tid = createStruct!S(attributes);
+							DataAttribute[] da;
+							auto elemType = createStruct!ElemType(da);
+							insertAttributes(elemType, da);
+							//hid_t hdf5Type = H5Tvlen_create (elemType);
+							alias dim = countDimensions!T;
+							//mixin("hid_t hdf5Type = H5Tarray_create2 (" ~ typeToHdf5Type!ElemType ~ ", " ~ dim.length.text ~ ", dim.ptr);");
+							hid_t hdf5Type = H5Tarray_create2 (elemType, castFrom!size_t.to!uint(dim.length), dim.ptr);
+						}
+						else
+						{
+							import std.conv: text;
 
-        insertAttributes(tid, attributes);
+							alias dim = countDimensions!T;
+							mixin("hid_t hdf5Type = H5Tarray_create2 (" ~ typeToHdf5Type!ElemType ~ ", " ~ dim.length.text ~ ", dim.ptr);");
+						}
+					}
+					else static if(isDynamicArray!T)
+					{
+						alias ElemType = ElementType!T;
+						static if(is(ElemType == struct))
+						{
+							DataAttribute[] da;
+							auto elemType = createStruct!ElemType(da);
+							insertAttributes(elemType, da);
+							hid_t hdf5Type = H5Tvlen_create (elemType);
+						}
+						else
+							mixin("hid_t hdf5Type = H5Tvlen_create (" ~ typeToHdf5Type!(ForeachType!T) ~ ");");
+					}
+					else static if(is(T == struct))
+					{
+						DataAttribute[] da;
+						auto hdf5Type = createStruct!T(da);
 
-        return RefCounted!(DataSpecification!S)(tid, attributes);
-    }
-    
-    private static makeImpl(D)() if(isScalarType!D)
-    {
-        mixin("hid_t tid = " ~ typeToHdf5Type!D ~ ";");
+						insertAttributes(hdf5Type, da);
+					}
+					else
+					{
+						mixin("hid_t hdf5Type = " ~ typeToHdf5Type!T ~ ";");
+					}
 
-        return RefCounted!(DataSpecification!D)(tid, (DataAttribute[]).init);
-    }
+					static if(!disabled)
+					{
+						// Add the attribute
+						mixin("string varName = \"" ~ hdf5Name ~ "\";");
+						mixin("enum offset = D." ~ member ~ ".offsetof;");
+						attributes ~= DataAttribute(hdf5Type, offset, varName);
+					}
+				}
+			}
 
-    private static makeImpl(D)() if(isStaticArray!D)
-    {
-        import std.conv: text;
+			return tid;
+		}
 
-        alias ElemType = ForeachType!D;
+		// Insert attributes of the structure into the datatype
+		auto insertAttributes(hid_t hdf5Type, DataAttribute[] da)
+		{
+			import hdf5.hdf5 : H5Tinsert;
 
-        alias dim = countDimensions!D;
-        mixin("hid_t tid = H5Tarray_create2 (" ~ typeToHdf5Type!(ElemType) ~ ", " ~ dim.length.text ~ ", dim.ptr);");
-        return RefCounted!(DataSpecification!D)(tid, (DataAttribute[]).init);
-    }
+			foreach(attr; da)
+			{
+				auto status = H5Tinsert(hdf5Type, attr.varName.toStringz, attr.offset, attr.type);
+				assert(status >= 0);
+			}
+		}
 
-    private static makeImpl(D)() if(isDynamicArray!D)
-    {
-        alias ElemType = ForeachType!D;
+		auto tid = createStruct!S(attributes);
 
-        mixin("hid_t tid = H5Tvlen_create (" ~ typeToHdf5Type!(ElemType) ~ ");");
-        return RefCounted!(DataSpecification!D)(tid, (DataAttribute[]).init);
-    }
+		insertAttributes(tid, attributes);
 
-    static make()
-    {
-        static if(isArray!Data) // if "outer" type of data is array it's processed on Dataset level,
-                                // so skip it
-        {
-            return makeImpl!(ForeachType!Data);
-        }
-        else
-        {
-            return makeImpl!(Data);
-        }
-    }
+		return RefCounted!(DataSpecification!S)(tid, attributes);
+	}
 
-    this(const(hid_t) tid, DataAttribute[] attributes)
-    {
-        _tid = tid;
-        _attributes = attributes;
-    }
+	private static makeImpl(D)() if(isScalarType!D)
+	{
+		mixin("hid_t tid = " ~ typeToHdf5Type!D ~ ";");
 
-    ~this()
-    {
-        static if(is(Data == struct))
-        {
-            H5Tclose(_tid);
-        }
-        else
-        static if(isScalarType!Data)
-        {
-            // do nothing because built-in type is used(?)
-        }
-    }
+		return RefCounted!(DataSpecification!D)(tid, (DataAttribute[]).init);
+	}
 
-    auto tid() const
-    {
-        return _tid;
-    }
+	private static makeImpl(D)() if(isStaticArray!D)
+	{
+		import std.conv: text;
+
+		alias ElemType = ForeachType!D;
+
+		alias dim = countDimensions!D;
+		mixin("hid_t tid = H5Tarray_create2 (" ~ typeToHdf5Type!(ElemType) ~ ", " ~ dim.length.text ~ ", dim.ptr);");
+		return RefCounted!(DataSpecification!D)(tid, (DataAttribute[]).init);
+	}
+
+	private static makeImpl(D)() if(isDynamicArray!D)
+	{
+		alias ElemType = ForeachType!D;
+
+		mixin("hid_t tid = H5Tvlen_create (" ~ typeToHdf5Type!(ElemType) ~ ");");
+		return RefCounted!(DataSpecification!D)(tid, (DataAttribute[]).init);
+	}
+
+	static make()
+	{
+		import std.range : isInputRange;
+		static if(isInputRange!Data) // if "outer" type of data is an input range it's processed,
+		                             // on Dataset level so skip it
+		{
+			return makeImpl!(ForeachType!Data);
+		}
+		else
+		{
+			return makeImpl!(Data);
+		}
+	}
+
+	this(const(hid_t) tid, DataAttribute[] attributes)
+	{
+		_tid = tid;
+		_attributes = attributes;
+	}
+
+	~this()
+	{
+		static if(is(Data == struct))
+		{
+			H5Tclose(_tid);
+		}
+		else
+		static if(isScalarType!Data)
+		{
+			// do nothing because built-in type is used(?)
+		}
+	}
+
+	auto tid() const
+	{
+		return _tid;
+	}
 
 private:
-    DataAttribute[] _attributes;
-    immutable hid_t _tid = -1;
+	DataAttribute[] _attributes;
+	immutable hid_t _tid = -1;
 }
