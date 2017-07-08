@@ -172,29 +172,61 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 		return _max_shape;
 	}
 
+	/*
+	 * Read data from the dataset.
+	 */
+	auto read()
+	{
+		import hdf5.hdf5;
+
+		Data data;
+		auto filespace = Dataspace(_dataset);
+
+		// get current size
+		auto offset = currShape().dup;
+		// set offset to zero for all dimensions
+		offset[] = 0;
+		herr_t status;
+
+		setDynArrayDimensions(data, currShape());
+		/*
+		 * Define the memory space to read dataset.
+		 */
+		auto memspace = H5Screate_simple(_rank, currShape().ptr, null);
+		scope(exit) H5Sclose(memspace);
+
+		/*
+		 * Read dataset
+		 */
+		status = H5Dread(_dataset, _data_spec.tid, memspace, filespace,
+				 H5P_DEFAULT, data.ptr);
+		assert(status >= 0);
+
+		return data;
+	}
+
 	/**
 	 * Read count data from file starting with offset
 	 */
-	auto read(hsize_t offset, hsize_t count)
+	auto read(hsize_t[] offset, hsize_t[] count)
 	{
 		import hdf5.hdf5 : H5Sselect_hyperslab, H5Screate_simple, H5Dread, H5Sclose,
 			H5S_seloper_t, H5P_DEFAULT;
 
-		assert((offset+count) <= _max_shape[0]);
+		//assert((offset+count) <= _max_shape[0]);
 		/*
 		* get the file dataspace.
 		*/
 		auto dataspace = Dataspace (_dataset); // dataspace identifier
 
-		auto file_offset = [offset];
-		auto file_count  = [count];
-		auto status = H5Sselect_hyperslab (dataspace, H5S_seloper_t.H5S_SELECT_SET, file_offset.ptr, null, file_count.ptr, null);
+		auto status = H5Sselect_hyperslab (dataspace, H5S_seloper_t.H5S_SELECT_SET, offset.ptr, null, count.ptr, null);
 		assert(status >= 0);
 		/*
 		* Define memory dataspace.
 		*/
-		auto mem_offset = [0UL];
-		auto mem_count  = [count];
+		auto mem_offset = offset;
+		mem_offset[] = 0;
+		auto mem_count  = count;
 		auto dimsm = mem_count;
 		auto memspace = H5Screate_simple (rank, dimsm.ptr, null);
 		scope(exit) H5Sclose (memspace);
@@ -206,7 +238,7 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 		assert(status >=0);
 
 		Data data;
-		setDynArrayDimensions (data, [count]);
+		setDynArrayDimensions (data, count);
 
 		status = H5Dread (_dataset, _data_spec.tid, memspace, dataspace, H5P_DEFAULT, data.ptr);
 		assert(status >= 0);
@@ -216,7 +248,7 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 	/*
 	 * Wtite data to the dataset;
 	 */
-	auto write(ref Data data)
+	auto write(Data data)
 	{
 		import hdf5.hdf5 : herr_t, H5Dset_extent, H5Sselect_hyperslab,
 			H5Dwrite, H5S_seloper_t, H5S_ALL, H5P_DEFAULT;

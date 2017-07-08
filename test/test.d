@@ -143,11 +143,11 @@ void main()
 				assert(max_shape.length == dataset.rank);
 				assert(max_shape[0]     == hsize_t.max); // unlimited size
 				// reading the first element of data - offset is 0, count is 1
-				assert(dataset.read(0, 1) == [ el[0] ]);
+				assert(dataset.read([0], [1]) == [ el[0] ]);
 				// reading the first two elements of data - offset is 0, count is 2
-				assert(dataset.read(0, 2) == [ el[0], el[1] ]);
+				assert(dataset.read([0], [2]) == [ el[0], el[1] ]);
 				// reading the second element of data - offset is 1, count is 1
-				assert(dataset.read(1, 1) == [ el[1] ]);
+				assert(dataset.read([1], [1]) == [ el[1] ]);
 			}
 		}
 
@@ -168,6 +168,10 @@ void main()
 			dataset.write(data[1..2], [4]);
 			dataset.setShape([6]);
 			dataset.write(data[2..3], [5]);
+
+			import std.stdio;
+			writeln(dataset.maxShape);
+			writeln(dataset.read([0], [2]));
 		}
 	}
 }
