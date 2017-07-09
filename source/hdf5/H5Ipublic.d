@@ -9,7 +9,6 @@ extern (C):
 
 //alias H5I_type_t H5I_type_t;
 alias c_long hid_t;
-pragma(msg, hid_t.sizeof);
 alias int function (void*) H5I_free_t;
 alias int function (void*, c_long, void*) H5I_search_func_t;
 
