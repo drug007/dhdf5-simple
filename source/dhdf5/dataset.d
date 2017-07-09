@@ -281,6 +281,40 @@ struct Dataset(Data, DataSpecType = typeof(DataSpecification!Data.make()))
 		return data;
 	}
 
+	/*
+	 * Read data from the dataset.
+	 */
+	auto read(ElementType!Data[] data) const
+	{
+		import hdf5.hdf5;
+
+		if (data.length < currShape[0])
+			return null;
+
+		auto filespace = Dataspace(_dataset);
+
+		// get current size
+		auto offset = currShape().dup;
+		// set offset to zero for all dimensions
+		offset[] = 0;
+		herr_t status;
+
+		/*
+		 * Define the memory space to read dataset.
+		 */
+		auto memspace = H5Screate_simple(rank, currShape().ptr, null);
+		scope(exit) H5Sclose(memspace);
+
+		/*
+		 * Read dataset
+		 */
+		status = H5Dread(_dataset, _data_spec.tid, memspace, filespace,
+				 H5P_DEFAULT, data.ptr);
+		assert(status >= 0);
+
+		return data;
+	}
+
 	/**
 	 * Read count data from file starting with offset
 	 */
